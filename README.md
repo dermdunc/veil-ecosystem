@@ -25,6 +25,7 @@ Vault mutation policy: see `vault_mutation_allowed` in `.hekton/project.yaml` (a
 
 ## Key Docs
 
+- [Interactive Ecosystem Plan](docs/interactive-plan.md)
 - [Session Log](docs/session-log.md)
 - [Decisions](docs/decisions.md)
 - [Risks](docs/risks.md)
