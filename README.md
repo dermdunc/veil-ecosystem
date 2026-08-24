@@ -43,6 +43,7 @@ wired today, and where the gaps are.
 
 - [Architecture](docs/architecture.md) — trust boundaries, integration status, seams, sequencing
 - [Setup](docs/setup.md) — per-component run instructions, honestly scoped
+- [Interactive Ecosystem Plan](docs/interactive-plan.md)
 - [Session Log](docs/session-log.md)
 - [Decisions](docs/decisions.md)
 - [Risks](docs/risks.md)
