@@ -24,13 +24,22 @@ documented -> scripted -> idempotent-ish -> logged -> reproducible on a blank ma
 ```bash
 git clone git@github.com:dermdunc/veilgremlin.git
 cd veilgremlin
-cargo build --release
+cargo build --release -p vg-cli
+export PATH="$PWD/target/release:$PATH"
 vg run -- claude "..."                        # wrap an agent with masking hooks
 vg inspect <file>                              # preview what WOULD be masked
 vg diff --masked <file>                        # masked rendering + stats, stores a reversible pack
 vg demask --from pack.json --to local-patch    # reverse a stored pack into a local destination
-vg audit last                                  # most recent audit event (refs/counts only)
+vg audit                                       # most recent audit event by default (refs/counts only)
 ```
+
+**Correction (2026-08-24, 3rd review cycle):** the previous version of this block —
+`cargo build --release` immediately followed by `vg run`, with no `-p vg-cli` and no `PATH`
+export — genuinely fails with "command not found." The binary lands at `target/release/vg` and
+nothing puts it on PATH; veilgremlin's own `docs/runbook-hooks.md` gets this right and the
+commands above now match it. Also: `--masked` is a required flag on `vg diff`, not optional as
+earlier phrasing implied, and `vg audit` takes its target as a positional argument defaulting to
+`last`, not a `last` subcommand.
 
 Fully functional, no network dependency in the hot path, no other component required.
 
@@ -78,9 +87,13 @@ cargo test
 **Correction (2026-08-24):** an earlier draft of this doc called this "library only, no
 runnable service" — false as of 2026-08-23: `src/main.rs` runs a real axum HTTP server with 8
 routes (device enrolment/revocation, pseudonym resolution, `attestation/status`, mTLS
-certificate renewal, CRL, health) against a real Postgres store. `cargo test` as shown above
-**will report 15 failures** — confirmed by actually running it — because the Postgres-backed
-tests in `src/store/postgres.rs` and `src/audit_log/postgres.rs` require a live database via
+certificate renewal, CRL, health) against a real Postgres store. **`cargo test` as shown above
+will report 15 failures and then stop — it never reaches all of the Postgres-backed tests**
+(corrected 2026-08-24, 3rd review cycle: the true count is **19 failures across 3 test files**,
+not 15 across 2 — `src/store/postgres.rs` has 11, `src/audit_log/postgres.rs` has 4, and a
+separate integration-test binary, `tests/db_grants.rs`, has 4 more that prove a Postgres-level
+INSERT-only grant on the resolution audit log; run `cargo test --no-fail-fast` to see all 19, or
+just `cargo test --test db_grants` for that target alone). All require a live database via
 `DATABASE_URL`. See that repo's `.env.example` for the expected shape; 62 non-Postgres tests
 pass with no setup at all. **Nothing in the ecosystem calls its API yet** — the service is real,
 but has zero external callers today. **This repo's own `docs/setup.md` doesn't mention
@@ -110,8 +123,9 @@ still untested, but there is no known defect blocking it.
 
 ## What "running the ecosystem together" would require
 
-Per [architecture.md](architecture.md#sequencing-to-close-them), in order: a frozen
-veil-proxy↔veil-observatory telemetry schema, a real emitter in veil-proxy, at least one real
-veil-observatory→veil-custodian call, and one applied veil-foundations sandbox account. None of
-that exists today — this section will move from "what would require" to "how to" once the first
-of those lands.
+Per [architecture.md](architecture.md#sequencing-to-close-them), in order: a real network
+emitter in veil-proxy (the telemetry schema itself was already reconciled and ratified
+2026-08-23 — corrected 2026-08-24, 3rd review cycle; that's no longer the blocker), at least one
+real veil-observatory→veil-custodian call, and one applied veil-foundations sandbox account.
+None of that exists today — this section will move from "what would require" to "how to" once
+the first of those lands.
