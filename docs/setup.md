@@ -56,36 +56,53 @@ git clone git@github.com:dermdunc/veil-observatory.git
 cd veil-observatory
 ```
 
-Has a real CLI and evidence-pack generator exercised by 491 tests — see that repo's own
-`docs/setup.md` for exact commands, not duplicated here since they weren't independently
-re-verified while writing this doc. **What it cannot do yet:** ingest a real veil-proxy
-telemetry receipt (none is emitted) or a real veil-foundations CloudTrail/Bedrock log (none is
-deployed) — every finding it produces today is against synthetic fixtures.
+**Correction (2026-08-24):** this repo's own `docs/setup.md` is not actually a source of real
+commands — verified directly, it's the generic Hekton scaffold boilerplate
+(`check-prereqs.sh`/`bootstrap-project.sh`/`verify-project.sh`) plus two literal `TODO` lines
+under "Project-Specific Steps." An earlier draft of this doc pointed there as if it had
+concrete instructions; it doesn't. Has a real CLI and evidence-pack generator exercised by 491
+tests (confirmed), but the actual invocation commands weren't independently re-derived for this
+doc — check that repo's source/tests directly, or ask there for a `docs/setup.md` fix. **What
+it cannot do yet:** ingest a real veil-proxy telemetry receipt (none is emitted) or a real
+veil-foundations CloudTrail/Bedrock log (none is deployed) — every finding it produces today is
+against synthetic fixtures.
 
-### veil-custodian — library only, no runnable service
+### veil-custodian — real service, but its own setup.md omits a required step
 
 ```bash
 git clone git@github.com:dermdunc/veil-custodian.git
 cd veil-custodian
-cargo test    # 15 tests against the hash-chained resolution audit log
+cargo test
 ```
 
-The `attestation/status` HTTP API is specified but not implemented — there is no server to
-start yet. Nothing in the ecosystem calls it today.
+**Correction (2026-08-24):** an earlier draft of this doc called this "library only, no
+runnable service" — false as of 2026-08-23: `src/main.rs` runs a real axum HTTP server with 7
+routes (device enrolment, `attestation/status`, mTLS certificate issuance/renewal, CRL, health)
+against a real Postgres store. `cargo test` as shown above **will report 15 failures** —
+confirmed by actually running it — because the Postgres-backed tests in `src/store/postgres.rs`
+and `src/audit_log/postgres.rs` require a live database via `DATABASE_URL`, which this repo's
+own setup docs don't mention either. See that repo's `.env.example` for the expected shape; 62
+non-Postgres tests pass with no setup at all. **Nothing in the ecosystem calls its API yet** —
+the service is real, but has zero external callers today.
 
 ### veil-foundations — one Terraform module, validated against a mock provider only
 
 ```bash
 git clone git@github.com:dermdunc/veil-foundations.git
 cd veil-foundations
+terraform -chdir=modules/iam-model-allowlist init
 terraform -chdir=modules/iam-model-allowlist fmt -check
 terraform -chdir=modules/iam-model-allowlist validate
 terraform -chdir=modules/iam-model-allowlist test
 ```
 
-**Do not `terraform apply` against a real AWS account yet** — the module as written makes a
-Bedrock Guardrail mandatory per invocation, which contradicts the ecosystem's decided
-no-Guardrails policy (ADR-0001 / ADR-010). Fix that first.
+**Correction (2026-08-24):** an earlier draft of this doc omitted the `init` step above and
+claimed the module makes a Bedrock Guardrail mandatory per invocation. Neither is currently
+true: `.terraform/` is gitignored, so a fresh clone needs `init` before `validate` will find its
+provider (confirmed by checking `.gitignore` and simulating a fresh clone); and the
+Guardrail-mandatory design was removed via ADR-010 on 2026-08-23 — `main.tf` now explicitly
+states "no guardrail condition of any kind." Terraform apply against a real AWS account is
+still untested, but there is no known defect blocking it.
 
 ## What "running the ecosystem together" would require
 

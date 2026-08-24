@@ -38,10 +38,11 @@ what it refers to.
 
 ### veil-proxy (repo: `veilgremlin`)
 
-The only component that's fully built and running today: 270 tests across 10 crates, a real
-`vg` CLI (`vg run`, `vg inspect`, `vg diff --masked`, `vg demask`, `vg audit`), detectors,
-policy engine, and a SQLCipher vault. Runs entirely on the developer's laptop with no network
-dependency in its hot path.
+The only component that's fully built and running today: 381 tests across 10 crates (verified
+2026-08-24 — an earlier draft of this doc said 270, carried over from a stale audit; see
+[Keeping this current](#keeping-this-current)), a real `vg` CLI (`vg run`, `vg inspect`,
+`vg diff --masked`, `vg demask`, `vg audit`), detectors, policy engine, and a SQLCipher vault.
+Runs entirely on the developer's laptop with no network dependency in its hot path.
 
 - **Owns:** parse → detect → mask → vault → policy → masked pack, plus local demask.
 - **Explicitly does not:** decide fleet-wide policy, aggregate telemetry across machines,
@@ -50,8 +51,12 @@ dependency in its hot path.
   minimises *what's in* a call it's already permitted to make).
 - **Gaps:** no cryptographic signing anywhere in the pipeline — the audit log is
   tamper-evident, not tamper-proof, and the policy-pack "signature" field is a hardcoded
-  placeholder that always verifies. There is no `TelemetryEvent` type in code yet, only a
-  draft proposal, so nothing downstream has anything real to ingest.
+  placeholder that always verifies. **Correction (2026-08-24):** a real `TelemetryEvent` type
+  now exists — `crates/vg-core/src/telemetry/mod.rs`, a tested, `#[non_exhaustive]` enum with
+  `Receipt`/`Alert`/`EdgeEvent` variants, landed 2026-08-23/24. What's still genuinely missing
+  is the network emitter: the module's own doc comment states it provides "the payload types
+  themselves — not a working emitter, which is separate, larger... work." So nothing is sent
+  to veil-observatory yet, but the reason is "no sender," not "no type."
 
 ### veil-foundations
 
@@ -62,14 +67,16 @@ out at all, and to which model*. A leak requires both a masking failure and an
 invocation-authority failure; deployed alone, each is weaker in a specific, nameable way (see
 `veilgremlin/docs/architecture/product-family.md` §2 for the full argument).
 
-- **Status:** one real module (`iam-model-allowlist`, a paired Allow/Deny IAM policy) passes
+- **Status:** one real module (`iam-model-allowlist`, an Allow-only IAM policy) passes
   `fmt`/`validate`/`test` against a mock provider. Nothing has run against a real AWS account.
-- **Known defect, not an open design question:** the one built module currently makes a
-  Bedrock Guardrail mandatory per invocation. That contradicts the family's actual, decided
-  policy (ADR-0001 in veil-observatory, ADR-010 in veil-foundations, superseding ADR-004):
-  **Bedrock Guardrails are excluded ecosystem-wide**, because an inline content filter adds
-  latency that interactive, vibe-coding workflows can't absorb. Fix before this module is
-  applied to a real account.
+- **Correction (2026-08-24):** an earlier draft of this doc claimed the module makes a Bedrock
+  Guardrail mandatory per invocation, contradicting the family's decided no-Guardrails policy
+  (ADR-0001 in veil-observatory, ADR-010 in veil-foundations, superseding ADR-004). That was
+  true of an *older* version of this module — **ADR-010 already fixed it, on 2026-08-23**,
+  before this doc's own "as of 2026-08-24" claim, which is exactly the kind of drift this doc
+  exists to catch and instead briefly reproduced. `main.tf` now reads, verbatim: *"Allow only,
+  scoped to the entry's authorized resources, no guardrail condition of any kind."* There is no
+  outstanding defect here. The no-Guardrails policy itself is real and correctly described.
 
 ### veil-custodian
 
@@ -81,12 +88,22 @@ applies to *content* (`MappingRef` → vault → `rehydrate`, gated by policy), 
 *identity* instead. Device attestation is decided as **mTLS device certificates**
 (2026-07-26).
 
-- **Status:** the resolution audit log is real and tested (hash-chained, append-only, 539
-  lines, 15 tests). The `attestation/status` API contract is well-specified — it answers "is
-  this pseudonym's cert valid," never "who is this," and veil-observatory's service identity is
-  structurally denied any grant on the resolution API itself.
-- **Gap:** the HTTP service — device schema, Postgres store, mTLS attestation handshake — is
-  100% unbuilt. A well-designed contract with zero implementation and zero callers.
+- **Status (corrected 2026-08-24):** an earlier draft of this doc said the HTTP service was
+  "100% unbuilt." That was true of the 2026-08-22 audit this doc was sourced from and stopped
+  being true the next day: **a real service landed 2026-08-23** — `src/main.rs` binds a TCP
+  listener and runs `axum::serve` against a real Postgres pool; `src/api/mod.rs` wires 7 routes
+  (`POST /v1/devices`, enrolment/revocation, `GET /v1/attestation/status`, certificate
+  issuance/renewal, CRL, health) to real handlers; `src/ca/mod.rs` implements mTLS CSR issuance
+  (426 lines). The resolution audit log (`src/audit_log/mod.rs`, 745 lines, hash-chained,
+  append-only, plus a Postgres-backed variant in `src/audit_log/postgres.rs`) is real and
+  tested — `attestation/status` answers "is this pseudonym's cert valid," never "who is this,"
+  and veil-observatory's service identity is structurally denied any grant on the resolution
+  API itself.
+- **Gap:** the service exists but has **zero callers** — nothing in veil-proxy or
+  veil-observatory invokes it yet (see [Integration Status](#integration-status)). Its
+  Postgres-backed tests (15 of them, in `src/store/postgres.rs` and
+  `src/audit_log/postgres.rs`) require a live database via `DATABASE_URL`, not documented in
+  this repo's own `docs/setup.md` — see [setup.md](setup.md) here for the caveat.
 
 ### veil-observatory
 
@@ -118,7 +135,7 @@ the real `vg-core` engine (not a mock). The one component with a live, deployed 
   scale-to-zero on idle. `/`, `/pitch`, and `/api/session` verified live. Terraform owns app
   existence, `fly deploy` owns releases.
 - **Relationship to veil-proxy:** pulls `vg-core` in as a pinned git dependency — this is, as of
-  2026-08-22, **the only one of the five designed cross-repo integrations that's actually
+  2026-08-24, **the only one of the five designed cross-repo integrations that's actually
   wired and running.** See [Integration status](#integration-status) below.
 
 ## Data Flow and Trust Boundaries
@@ -143,16 +160,21 @@ resolved value), latency measurements, and a device pseudonym (never a hostname 
 those are enterprise-sensitivity-class data under the project's own taxonomy, and shipping one
 to an observatory would be a small version of the exact leak this product exists to prevent).
 
-The intended enforcement mechanism is a purpose-built `TelemetryEvent` type in veil-proxy,
-constructible only via a reviewed, exhaustive conversion from the existing local `AuditEvent` —
-so the emitter's own type signature, not just test discipline, makes "sent something it was
-never given a way to hold" the enforced invariant. **This type does not exist in code yet** —
-it's the design target the next section's integration status measures against.
+The enforcement mechanism is a purpose-built `TelemetryEvent` type in veil-proxy — it exists
+today (`crates/vg-core/src/telemetry/mod.rs`, landed 2026-08-23/24), constructible only via a
+reviewed, exhaustive conversion from the existing local `AuditEvent`, so the emitter's own type
+signature, not just test discipline, makes "sent something it was never given a way to hold"
+the enforced invariant. **What doesn't exist yet is the emitter itself** — the code that takes a
+`TelemetryEvent` and actually sends it over the network to veil-observatory. The type-level
+guarantee is real; nothing is transmitted yet.
 
 ## Integration Status
 
-Five cross-repo integrations are called for by the design. As of the 2026-08-22 ecosystem audit,
-**one is real; four are designed-but-uncalled or entirely unbuilt.**
+Five cross-repo integrations are called for by the design. As of 2026-08-24 (re-verified against
+the actual repos, not just the 2026-08-22 audit this doc originally carried over — see
+[Keeping this current](#keeping-this-current)), **one is real; four are still designed-but-
+uncalled or missing** — but two of the "unbuilt" callees have grown real implementations since
+the audit, so "no caller yet" is now the more accurate frame than "unbuilt" for those two.
 
 ```mermaid
 flowchart TB
@@ -162,33 +184,36 @@ flowchart TB
     CUST["veil-custodian<br/>pseudonym resolution"]
     DEMO["veil-demo<br/>public playground"]
 
-    VP -. "signed receipt / telemetry: not emitted" .-> OBS
+    VP -. "signed receipt / telemetry: type exists, no emitter" .-> OBS
     WG -. "CloudTrail / Bedrock logs: not deployed" .-> OBS
-    OBS -. "GET attestation/status: spec'd, zero callers" .-> CUST
-    VP -. "POST /devices enrolment: designed, unbuilt" .-> CUST
+    OBS -. "GET attestation/status: built, zero callers" .-> CUST
+    VP -. "POST /devices enrolment: built, zero callers" .-> CUST
     VP == "vg-core as pinned git dep: live" ==> DEMO
 ```
 
 | Integration | Status |
 |---|---|
-| veil-proxy → veil-observatory (signed telemetry receipt) | **Missing.** No `TelemetryEvent` type exists; nothing is emitted. |
+| veil-proxy → veil-observatory (signed telemetry receipt) | **Missing.** `TelemetryEvent` type exists and is tested; no network emitter exists, so nothing is sent. |
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
-| veil-observatory → veil-custodian (`attestation/status` query) | **Designed, no caller.** Endpoint spec'd; nothing invokes it. |
-| veil-proxy → veil-custodian (`POST /devices` enrolment) | **Designed, unbuilt.** |
+| veil-observatory → veil-custodian (`attestation/status` query) | **Callee built, no caller.** The endpoint is live in veil-custodian (real axum route, real handler); nothing in veil-observatory invokes it yet. |
+| veil-proxy → veil-custodian (`POST /devices` enrolment) | **Callee built, no caller.** The endpoint is live in veil-custodian; nothing in veil-proxy invokes it yet. |
 | veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built and live.** The one real integration today. |
 
 ## Where the seams are
 
-Ranked by how much downstream work is blocked on each one closing (from the 2026-08-22 audit):
+Ranked by how much downstream work is blocked on each one closing (from the 2026-08-22 audit,
+reconciled against live repo state 2026-08-24):
 
-1. **No wire format between veil-proxy and veil-observatory.** The producer emits nothing; the
-   consumer's schema is an untested guess. This is the single blocker that makes every other
-   integration moot.
+1. **No wire format between veil-proxy and veil-observatory.** The producer has a real,
+   type-safe payload (`TelemetryEvent`) but no emitter to send it; the consumer's schema is
+   still an untested guess. This is the single blocker that makes every other integration moot.
 2. **No cryptographic trust anywhere in the pipeline.** "Signed receipt" and "verified
    signature" are both stubs, on both ends. The assurance half of an assurance plane doesn't
    exist yet — today everything is trust-on-read.
-3. **veil-custodian's API has zero callers.** The one place the ecosystem has a genuinely
-   well-designed cross-repo contract, and nothing invokes it.
+3. **veil-custodian's API has zero callers, despite the API itself now being real.** As of
+   2026-08-23 this is no longer "a contract with no implementation" — it's a running service
+   nobody calls. That's a smaller gap than it was, but still a gap: neither veil-proxy's device
+   enrolment nor veil-observatory's attestation check actually happens.
 4. **veil-foundations produces none of the evidence veil-observatory assumes.** No sandbox AWS
    account has been touched; every finding so far is against synthetic fixtures.
 5. **Demask authorisation is open ecosystem-wide.** Actor/role attribution is self-asserted,
@@ -203,16 +228,19 @@ A recommendation, open to redirect, carried over from the audit and consistent w
 dependency order in `veilgremlin/docs/architecture/product-family.md` §9:
 
 1. ~~Ship veil-demo~~ — **done**, live at veil-demo.fly.dev.
-2. **Freeze the receipt/telemetry contract.** Reconcile veil-proxy's draft `TelemetryEvent`
-   proposal with veil-observatory's draft receipt schema into one schema both sides commit to.
-   Everything else is downstream of this decision.
-3. **Build the emitter, retire the fixtures.** Implement the frozen schema in veil-proxy;
-   switch veil-observatory's ingestion off synthetic fixtures onto real receipts.
-4. **Wire one real custodian call.** Even against a stub server, have veil-observatory call
-   `attestation/status` for real — proves the "observatory never touches identity" boundary
-   structurally, not just on paper.
-5. **Stand up one sandbox AWS account.** Apply veil-foundations' one real module (after fixing
-   the Guardrail defect above) against it, then extend to invocation logging.
+2. **Freeze the receipt/telemetry contract.** veil-proxy's `TelemetryEvent` type is now real
+   (2026-08-23/24); reconcile it with veil-observatory's still-draft receipt schema into one
+   schema both sides commit to. Everything else is downstream of this decision.
+3. **Build the emitter, retire the fixtures.** The type exists — build the network sender in
+   veil-proxy that actually transmits a `TelemetryEvent`; switch veil-observatory's ingestion
+   off synthetic fixtures onto real receipts.
+4. **Wire one real custodian call.** veil-custodian's `attestation/status` endpoint is a real,
+   running service as of 2026-08-23 — have veil-observatory call it for real. This proves the
+   "observatory never touches identity" boundary structurally, not just on paper.
+5. **Stand up one sandbox AWS account.** Apply veil-foundations' one real module against it,
+   then extend to invocation logging. (The Guardrail-mandatory defect an earlier draft of this
+   doc flagged here was already fixed via ADR-010 on 2026-08-23 — nothing left to fix before
+   this step.)
 6. **Decide signing last** — once the wire format is stable. Signing a schema that's still
    moving is wasted work.
 7. ~~Write the missing architecture document~~ — **done: this document.** Keeping it current is
@@ -234,9 +262,18 @@ the integration status above — most components run standalone today; almost no
 
 ## Keeping this current
 
-This document is only as good as its next update. Whoever lands the changes in the sequencing
-above should update the relevant sections here in the same PR — particularly
-[Integration Status](#integration-status), which will go stale the moment any of the four
-missing/designed-only integrations gets built. Record ecosystem-level decisions (not
-single-repo ones — those belong in that repo's own `docs/decisions.md`) in
-[decisions.md](decisions.md).
+**This document was itself stale on the day it was written, and that's the lesson to carry
+forward, not just a footnote.** The first draft (2026-08-24) was synthesised from a 2026-08-22
+audit and never independently re-checked against the component repos before publishing. A
+doubt-driven-development review cycle the same day caught three load-bearing errors this
+caused — a defect claimed against veil-foundations that ADR-010 had already fixed the day
+before, a veil-custodian service claimed unbuilt that had already shipped, and a veil-proxy
+`TelemetryEvent` type claimed nonexistent that already existed — all from real commits that
+landed in the two days between the audit and this doc. See `docs/decisions.md` for the full
+record of what was wrong and how it was corrected.
+
+The takeaway: **synthesising from a point-in-time audit is not the same as verifying against
+current repo state, even a few days later, in a fast-moving family of repos.** Whoever lands
+changes in the sequencing above should update the relevant sections here in the same PR — and
+should verify against the actual repo, not against this document's own prior claims — starting
+with [Integration Status](#integration-status), the section most likely to go stale next.
