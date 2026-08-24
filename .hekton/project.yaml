@@ -24,7 +24,12 @@ version: ""
 default_agents:
   - claude
   - codex
-related_projects: []
+related_projects:
+  - veilgremlin
+  - veil-foundations
+  - veil-custodian
+  - veil-observatory
+  - veil-demo
 
 reproducibility:
   target: "blank Hekton machine"
@@ -58,11 +63,16 @@ architecture:
   maturity_date: 2026-08-24
   target_state_relevance: experimental
   depends_on: []
-  enables: []
+  enables:
+    - veilgremlin
+    - veil-foundations
+    - veil-custodian
+    - veil-observatory
+    - veil-demo
   consumes: []
   promotion_candidate: false
   promotion_target: none
-  next_architecture_step: ""
+  next_architecture_step: "Keep docs/architecture.md's Integration Status table in sync as veil-proxy<->veil-observatory telemetry, veil-observatory<->veil-custodian attestation calls, and veil-foundations AWS evidence move from designed-only to built. See docs/next-actions.md."
   last_validated: 2026-08-24
   evidence_links: []
   risks: []
