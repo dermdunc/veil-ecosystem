@@ -91,19 +91,24 @@ applies to *content* (`MappingRef` → vault → `rehydrate`, gated by policy), 
 - **Status (corrected 2026-08-24):** an earlier draft of this doc said the HTTP service was
   "100% unbuilt." That was true of the 2026-08-22 audit this doc was sourced from and stopped
   being true the next day: **a real service landed 2026-08-23** — `src/main.rs` binds a TCP
-  listener and runs `axum::serve` against a real Postgres pool; `src/api/mod.rs` wires 7 routes
-  (`POST /v1/devices`, enrolment/revocation, `GET /v1/attestation/status`, certificate
-  issuance/renewal, CRL, health) to real handlers; `src/ca/mod.rs` implements mTLS CSR issuance
-  (426 lines). The resolution audit log (`src/audit_log/mod.rs`, 745 lines, hash-chained,
-  append-only, plus a Postgres-backed variant in `src/audit_log/postgres.rs`) is real and
-  tested — `attestation/status` answers "is this pseudonym's cert valid," never "who is this,"
-  and veil-observatory's service identity is structurally denied any grant on the resolution
-  API itself.
+  listener and runs `axum::serve` against a real Postgres pool; `src/api/mod.rs` wires 8 routes
+  to real handlers: `POST /v1/devices` (enrolment), `POST /v1/devices/{pseudonym}/revoke`,
+  **`POST`+`GET /v1/resolutions`** (the actual pseudonym-resolution operation — see below),
+  `GET /v1/attestation/status`, certificate renewal, CRL, and two health endpoints. (An earlier
+  draft of this correction said "7 routes... cert issuance/renewal" — undercounted by one and
+  wrong about renewal being a pair; certificate *issuance* happens as a byproduct of enrolment,
+  not a separate route, and `/v1/resolutions` was dropped entirely despite being the component's
+  headline operation.) `src/ca/mod.rs` implements mTLS CSR issuance (426 lines). The resolution
+  audit log (`src/audit_log/mod.rs`, 745 lines, hash-chained, append-only, plus a Postgres-backed
+  variant in `src/audit_log/postgres.rs`) is real and tested — `attestation/status` answers "is
+  this pseudonym's cert valid," never "who is this," and veil-observatory's service identity is
+  structurally denied any grant on the resolution API itself.
 - **Gap:** the service exists but has **zero callers** — nothing in veil-proxy or
-  veil-observatory invokes it yet (see [Integration Status](#integration-status)). Its
-  Postgres-backed tests (15 of them, in `src/store/postgres.rs` and
-  `src/audit_log/postgres.rs`) require a live database via `DATABASE_URL`, not documented in
-  this repo's own `docs/setup.md` — see [setup.md](setup.md) here for the caveat.
+  veil-observatory invokes it yet, including `/v1/resolutions` itself (see
+  [Integration Status](#integration-status), which now lists it explicitly). Its Postgres-backed
+  tests (15 of them, in `src/store/postgres.rs` and `src/audit_log/postgres.rs`) require a live
+  database via `DATABASE_URL`, not documented in this repo's own `docs/setup.md` — see
+  [setup.md](setup.md) here for the caveat.
 
 ### veil-observatory
 
@@ -161,20 +166,32 @@ those are enterprise-sensitivity-class data under the project's own taxonomy, an
 to an observatory would be a small version of the exact leak this product exists to prevent).
 
 The enforcement mechanism is a purpose-built `TelemetryEvent` type in veil-proxy — it exists
-today (`crates/vg-core/src/telemetry/mod.rs`, landed 2026-08-23/24), constructible only via a
-reviewed, exhaustive conversion from the existing local `AuditEvent`, so the emitter's own type
-signature, not just test discipline, makes "sent something it was never given a way to hold"
-the enforced invariant. **What doesn't exist yet is the emitter itself** — the code that takes a
-`TelemetryEvent` and actually sends it over the network to veil-observatory. The type-level
-guarantee is real; nothing is transmitted yet.
+today (`crates/vg-core/src/telemetry/mod.rs`, landed 2026-08-23/24). **Correction (2026-08-24,
+2nd review cycle):** an earlier draft of this section overstated the construction guarantee as
+"constructible only via a reviewed, exhaustive conversion from `AuditEvent`" — the type's own
+doc comment is more careful than that: it also exposes `pub(crate)` direct constructors
+(`new_receipt`/`new_alert`/`new_edge_event`) for code that already holds a valid `Envelope` +
+payload pair, bypassing the `AuditEvent` conversion. The module's comment calls the
+conversion-based path the "sole intended construction path **in practice**," not one Rust's
+type system actually forecloses — a real, acknowledged limit, not a design flaw introduced by
+this doc's earlier overclaim. **What doesn't exist yet is the emitter itself** — the code that
+takes a `TelemetryEvent` and actually sends it over the network to veil-observatory. Nothing is
+transmitted yet, regardless of construction path.
 
 ## Integration Status
 
-Five cross-repo integrations are called for by the design. As of 2026-08-24 (re-verified against
-the actual repos, not just the 2026-08-22 audit this doc originally carried over — see
+Five cross-repo integrations are called for by the design (per the 2026-08-22 audit's own named
+list). As of 2026-08-24 (re-verified against the actual repos — see
 [Keeping this current](#keeping-this-current)), **one is real; four are still designed-but-
 uncalled or missing** — but two of the "unbuilt" callees have grown real implementations since
 the audit, so "no caller yet" is now the more accurate frame than "unbuilt" for those two.
+
+**Not on the original list, but worth naming:** veil-custodian's real API surface is broader
+than the two calls above — it also exposes `/v1/resolutions` (the actual pseudonym-resolution
+operation) and device revocation, neither of which any other repo calls either. A second review
+cycle on 2026-08-24 found the first correction's route description had silently dropped
+`/v1/resolutions`, the component's own headline operation — corrected in the component section
+above.
 
 ```mermaid
 flowchart TB

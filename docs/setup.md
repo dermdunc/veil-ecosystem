@@ -76,14 +76,18 @@ cargo test
 ```
 
 **Correction (2026-08-24):** an earlier draft of this doc called this "library only, no
-runnable service" — false as of 2026-08-23: `src/main.rs` runs a real axum HTTP server with 7
-routes (device enrolment, `attestation/status`, mTLS certificate issuance/renewal, CRL, health)
-against a real Postgres store. `cargo test` as shown above **will report 15 failures** —
-confirmed by actually running it — because the Postgres-backed tests in `src/store/postgres.rs`
-and `src/audit_log/postgres.rs` require a live database via `DATABASE_URL`, which this repo's
-own setup docs don't mention either. See that repo's `.env.example` for the expected shape; 62
-non-Postgres tests pass with no setup at all. **Nothing in the ecosystem calls its API yet** —
-the service is real, but has zero external callers today.
+runnable service" — false as of 2026-08-23: `src/main.rs` runs a real axum HTTP server with 8
+routes (device enrolment/revocation, pseudonym resolution, `attestation/status`, mTLS
+certificate renewal, CRL, health) against a real Postgres store. `cargo test` as shown above
+**will report 15 failures** — confirmed by actually running it — because the Postgres-backed
+tests in `src/store/postgres.rs` and `src/audit_log/postgres.rs` require a live database via
+`DATABASE_URL`. See that repo's `.env.example` for the expected shape; 62 non-Postgres tests
+pass with no setup at all. **Nothing in the ecosystem calls its API yet** — the service is real,
+but has zero external callers today. **This repo's own `docs/setup.md` doesn't mention
+`DATABASE_URL` either** — worth noting it's not a more authoritative source than this section:
+verified 2026-08-24, it's the same generic Hekton scaffold boilerplate
+(`check-prereqs.sh`/`bootstrap-project.sh`/`verify-project.sh` + two `TODO` lines) as
+veil-observatory's, not a legitimate reference this doc is merely summarising.
 
 ### veil-foundations — one Terraform module, validated against a mock provider only
 
