@@ -253,7 +253,7 @@ flowchart TB
 
 | Integration | Status |
 |---|---|
-| veil-proxy → veil-observatory (signed telemetry receipt) | **Contract built and verified end-to-end; not yet wired into the live audit-write path, not merged, not pushed.** See 2026-08-29 update below. |
+| veil-proxy → veil-observatory (signed telemetry receipt) | **Wired and demonstrated live (`EdgeEvent`, not `Receipt`); merged to local `main` on both sides, not pushed.** See 2026-08-29 updates below. |
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
 | veil-observatory → veil-custodian (`attestation/status` query) | **Callee built, no caller.** The endpoint is live in veil-custodian (real axum route, real handler); nothing in veil-observatory invokes it yet. |
 | veil-proxy → veil-custodian (`POST /devices` enrolment) | **Callee built, no caller.** The endpoint is live in veil-custodian; nothing in veil-proxy invokes it yet. |
@@ -285,6 +285,21 @@ against a hand-constructed record. Edge events also do not yet reach `Correlator
 signing/verification half of seam #1, not the "produces a finding from real telemetry" claim.
 Treat this as "the hard cryptographic contract is proven; the wiring that would make it fire
 automatically is the remaining gap" — see `docs/next-actions.md`.
+
+**Update (2026-08-29, same day, later):** the wiring landed too. Both branches merged to local
+`main` in their respective repos (still unpushed), and a genuine cross-process run followed:
+a real `veil-observatory serve` instance, a real signed `EdgeEvent` sent by veil-proxy's real
+emitter, logged `202 Accepted` and persisted with a genuine HMAC actor pseudonym. This is now
+the second real integration, after veil-proxy → veil-demo, though narrower in scope than the
+five-integration list implies (`EdgeEvent`, not `Receipt`) and not yet running unattended in
+production (opt-in env vars, manual trigger). **A real operational gotcha surfaced getting
+there, worth naming for whoever configures this next**: `VEIL_RECEIPT_KEY` means two different
+byte encodings depending which repo reads it — veil-proxy hex-decodes it, veil-observatory
+UTF-8-encodes it directly. The same 32-byte key needs two different string values, one per
+process; the identical string in both environments silently produces two unrelated keys with
+no error on either side. See `veilgremlin/docs/build-log/2026-08-29-the-same-string-two-different-keys.md`
+for the full story and `veilgremlin/crates/vg-audit/tests/live_edge_event_integration.rs` for
+the exact working invocation.
 
 **Not on the five-integration list above, but worth naming — and, per the 3rd review cycle,
 more complete than the 2nd correction stated:** veil-custodian's real API surface has four more

@@ -43,8 +43,18 @@ this repo's creation.
 - [ ] Wire `TelemetryCountingAuditSink::write` (`crates/vg-audit/src/telemetry_sink.rs`) to call
       the signer on a successful `EdgeEvent` conversion instead of discarding it — currently only
       counts the conversion, does nothing with the value.
-- [ ] Merge and push both branches above once the client/wiring items land, then update this
-      doc's Integration Status table from "built and verified, unmerged" to "wired and running."
+- [x] ~~Build the network client and wire the audit-sink hook~~ — done 2026-08-29: fire-and-forget
+      emitter on a dedicated thread, structurally opt-in on `VEIL_RECEIPT_KEY` +
+      `VEIL_OBSERVATORY_ENDPOINT`, wired into `TelemetryCountingAuditSink::write`.
+- [x] ~~Merge both branches~~ — fast-forward merged to local `main` in both repos, 2026-08-29.
+      Not pushed to GitHub.
+- [x] ~~Demonstrate one genuine live delivery~~ — done 2026-08-29: real cross-process run
+      against a real `veil-observatory serve` instance, logged 202 Accepted, persisted with a
+      genuine HMAC pseudonym. See `veilgremlin/crates/vg-audit/tests/live_edge_event_integration.rs`.
+- [ ] Push both branches to GitHub, once a human reviews the diffs.
+- [ ] Document the `VEIL_RECEIPT_KEY` hex-vs-UTF-8 encoding mismatch between the two repos
+      somewhere an operator will actually see it before configuring a real deployment — right
+      now it's only in `veilgremlin`'s build-log and this doc's architecture update.
 
 ## This Week
 
