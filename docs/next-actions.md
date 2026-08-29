@@ -25,9 +25,26 @@ this repo's creation.
       both still assert a "structural stub" signature verifier that a real `HmacReceiptVerifier`
       already superseded. This repo's own doc inherited that stale self-description once; it
       could happen again from the same source.
-- [ ] Build the network emitter in veil-proxy (`crates/vg-core/src/telemetry/`) — the type and
-      the target schema both exist and are reconciled; this is the actual remaining blocker on
-      wire format, not a design decision
+- [x] ~~Build the `veil.edge_event.v1` signing/wire contract in veil-proxy~~ — done 2026-08-29,
+      independently re-verified this session (not just self-reported): serialization, canonical
+      JSON, and HMAC-SHA256 signing all land in `crates/vg-core/src/telemetry/`, 176 tests pass,
+      golden vector matches a fresh hand-computed Python HMAC byte-for-byte. Unmerged, unpushed
+      (branch `worktree-agent-a9869ec2363020f3e`, commit `1d14b13`). `Receipt`/`veil.receipt.v2`
+      remains unbuilt — the aggregator it needs is still an explicit skeleton; this was a
+      deliberate scope narrowing to `EdgeEvent`, not a claim about `Receipt`.
+- [x] ~~Build `veil.edge_event.v1` ingestion in veil-observatory~~ — done 2026-08-29: schema,
+      generalized `HmacReceiptVerifier`, and a loopback HTTP receiver (`veil-observatory serve`)
+      all real. 547 passed, 1 skipped (up from 491), independently re-run this session, including
+      tamper/replay/ECDSA-refusal/loopback-binding checks. Unmerged, unpushed (branch
+      `agent/claude/edge-event-v1-ingestion`, commit `775a219`). Edge events do not yet reach
+      `Correlator`/`FindingEngine` — no aggregator for a single event to attach to yet.
+- [ ] Build the network *client* in veil-proxy that actually POSTs a signed `EdgeEvent` to
+      veil-observatory's new receiver — the signer exists, nothing calls it over a socket yet.
+- [ ] Wire `TelemetryCountingAuditSink::write` (`crates/vg-audit/src/telemetry_sink.rs`) to call
+      the signer on a successful `EdgeEvent` conversion instead of discarding it — currently only
+      counts the conversion, does nothing with the value.
+- [ ] Merge and push both branches above once the client/wiring items land, then update this
+      doc's Integration Status table from "built and verified, unmerged" to "wired and running."
 
 ## This Week
 
