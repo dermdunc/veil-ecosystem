@@ -253,11 +253,53 @@ flowchart TB
 
 | Integration | Status |
 |---|---|
-| veil-proxy → veil-observatory (signed telemetry receipt) | **Missing.** `TelemetryEvent` type exists and is tested; no network emitter exists, so nothing is sent. |
+| veil-proxy → veil-observatory (signed telemetry receipt) | **Wired and demonstrated live (`EdgeEvent`, not `Receipt`); merged to local `main` on both sides, not pushed.** See 2026-08-29 updates below. |
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
 | veil-observatory → veil-custodian (`attestation/status` query) | **Callee built, no caller.** The endpoint is live in veil-custodian (real axum route, real handler); nothing in veil-observatory invokes it yet. |
 | veil-proxy → veil-custodian (`POST /devices` enrolment) | **Callee built, no caller.** The endpoint is live in veil-custodian; nothing in veil-proxy invokes it yet. |
 | veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built and live.** The one real integration today. |
+
+**Update (2026-08-29):** the veil-proxy → veil-observatory crypto/ingestion contract described
+as seam #1 below is no longer purely designed-but-uncalled. Deliberately scoped narrower than
+the `Receipt`/`veil.receipt.v2` this doc originally pointed at: `Receipt` still cannot be
+produced in production (`TryFrom<&AuditEvent>` rejects `Scan`/`PolicyDecision` with
+`RequiresAggregation`, and the aggregator remains an explicit unfinished skeleton). Instead,
+`EdgeEvent` — already producible in production today from `DemaskRequest`/`DemaskDecision`/
+recognized `Block` reasons — got a real wire format: `veil.edge_event.v1`. On the veil-proxy
+side, `EdgeEvent`/`Envelope`/`Integrity` now serialize to canonical JSON and get HMAC-SHA256
+signed (`crates/vg-core/src/telemetry/{canonical,signing}.rs`), independently field-audited
+against this doc's own "never crosses the boundary" rule before implementation (every
+serialized field is a closed enum, a fixed-width hash, or a bounded token — no raw string
+escape hatch). On the veil-observatory side, a new `schemas/veil.edge_event.v1.schema.json`,
+an `EdgeEventAdapter`, a generalized `HmacReceiptVerifier` (now verifies edge events for real,
+not the stub), and a loopback HTTP receiver (`veil-observatory serve`) all exist and pass a
+shared cross-language golden vector byte-for-byte — independently re-verified in this session,
+not just self-reported by the builders. **What's still not true:** neither repo has this merged
+to `main` or pushed (veilgremlin: local branch `worktree-agent-a9869ec2363020f3e`,
+commit `1d14b13`; veil-observatory: local branch `agent/claude/edge-event-v1-ingestion`,
+commit `775a219`), nothing in `vg-audit`'s `TelemetryCountingAuditSink::write` calls the signer
+yet (it still discards the converted `EdgeEvent` after counting it), and there is no HTTP
+*client* in veil-proxy sending anything — only a receiver on the veil-observatory side proven
+against a hand-constructed record. Edge events also do not yet reach `Correlator`/
+`FindingEngine`: a single unaggregated event has nothing to attach to yet, so this closes the
+signing/verification half of seam #1, not the "produces a finding from real telemetry" claim.
+Treat this as "the hard cryptographic contract is proven; the wiring that would make it fire
+automatically is the remaining gap" — see `docs/next-actions.md`.
+
+**Update (2026-08-29, same day, later):** the wiring landed too. Both branches merged to local
+`main` in their respective repos (still unpushed), and a genuine cross-process run followed:
+a real `veil-observatory serve` instance, a real signed `EdgeEvent` sent by veil-proxy's real
+emitter, logged `202 Accepted` and persisted with a genuine HMAC actor pseudonym. This is now
+the second real integration, after veil-proxy → veil-demo, though narrower in scope than the
+five-integration list implies (`EdgeEvent`, not `Receipt`) and not yet running unattended in
+production (opt-in env vars, manual trigger). **A real operational gotcha surfaced getting
+there, worth naming for whoever configures this next**: `VEIL_RECEIPT_KEY` means two different
+byte encodings depending which repo reads it — veil-proxy hex-decodes it, veil-observatory
+UTF-8-encodes it directly. The same 32-byte key needs two different string values, one per
+process; the identical string in both environments silently produces two unrelated keys with
+no error on either side. See `veilgremlin/docs/build-log/2026-08-29-the-same-string-two-different-keys.md`
+for the full story and `veilgremlin/crates/vg-audit/tests/live_edge_event_integration.rs` for
+the exact working invocation.
 
 **Not on the five-integration list above, but worth naming — and, per the 3rd review cycle,
 more complete than the 2nd correction stated:** veil-custodian's real API surface has four more
@@ -274,13 +316,14 @@ not one.
 Ranked by how much downstream work is blocked on each one closing (from the 2026-08-22 audit,
 reconciled against live repo state 2026-08-24):
 
-1. **No emitter, even though the wire format itself is now settled.** **Correction (2026-08-24,
-   3rd review cycle):** this seam was described as "no wire format... the consumer's schema is
-   still an untested guess" — stale. The schema was reconciled and ratified 2026-08-23 (see
-   Sequencing item 2 below); the producer has a real, type-safe payload (`TelemetryEvent`)
-   matching it. What's actually missing is narrower: nobody has built the code that sends one
-   over the network. Still the single blocker that makes every other integration moot — just a
-   smaller blocker than previously described.
+1. **Update (2026-08-29): the crypto/ingestion contract is now built and verified; the network
+   client and the sink hook that would fire it automatically are not.** Narrower than either
+   prior description. `EdgeEvent` (not `Receipt` — see the Integration Status update above)
+   signs, serializes, transmits-in-principle, and verifies correctly end-to-end against a shared
+   golden vector on unmerged, unpushed branches in both repos. What remains: an HTTP client in
+   veil-proxy to actually send one, and one line at `TelemetryCountingAuditSink::write` to call
+   the signer instead of discarding the converted value. Smaller than "no emitter exists," larger
+   than "just needs deploying" — the wiring, not the cryptography, is what's left.
 2. **No cryptographic trust between the two ends, though one end is real.** veil-proxy's
    "signed receipt" is genuinely a stub — no signing exists in its pipeline (see the veil-proxy
    component section). **Correction (2026-08-24, 3rd review cycle):** veil-observatory's
