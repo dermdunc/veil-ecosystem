@@ -72,3 +72,19 @@ this repo's creation.
 - Stand up one sandbox AWS account and apply veil-foundations' module against it
 - Build the veil-proxy signer, once the wire format is stable (deliberately last) — the
   veil-observatory verifier side is already real
+
+## Session Update: 2026-08-30 — fresh 5-repo audit
+
+- [ ] **Human, time-sensitive**: veil-demo's live deployment is down — Fly.io trial has ended,
+      needs a credit card added (or a decision to let the demo stay offline). Independent of
+      any code issue; confirmed via a failed TLS handshake and `fly status`'s own error.
+- [ ] Bump veil-demo's `veilgremlin` pin (`0a4ec71...`, confirmed 8 commits behind `main` as of
+      this audit) once a human decides whether the demo should showcase the new edge_event.v1
+      telemetry capability or stay minimal.
+- [x] ~~Fix veilgremlin's CI (`cargo-fmt-check` failing on every push since this session's
+      telemetry work landed)~~ — done same day, confirmed green afterward.
+- [x] ~~Record veil-foundations' redaction fix in its own decisions.md/next-actions.md~~ — done;
+      it previously existed only as a commit message.
+- [ ] Everything else from the 2026-08-24 sequencing (custodian caller, AWS sandbox, the
+      aggregator/Receipt path) remains open and unchanged by this session's work, which was
+      scoped to seam #1's `EdgeEvent` slice only.
