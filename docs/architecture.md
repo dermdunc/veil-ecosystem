@@ -257,7 +257,7 @@ flowchart TB
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
 | veil-observatory → veil-custodian (`attestation/status` query) | **Callee built, no caller.** The endpoint is live in veil-custodian (real axum route, real handler); nothing in veil-observatory invokes it yet. |
 | veil-proxy → veil-custodian (`POST /devices` enrolment) | **Callee built, no caller.** The endpoint is live in veil-custodian; nothing in veil-proxy invokes it yet. |
-| veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built and live.** The one real integration today. |
+| veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built, but not currently live.** The pin mechanism works; the deployed instance is down. See 2026-08-30 update below. |
 
 **Update (2026-08-29):** the veil-proxy → veil-observatory crypto/ingestion contract described
 as seam #1 below is no longer purely designed-but-uncalled. Deliberately scoped narrower than
@@ -387,6 +387,56 @@ document doesn't re-litigate.
 See [setup.md](setup.md) for what's actually runnable per component, honestly scoped against
 the integration status above — most components run standalone today; almost nothing runs
 *together* yet, because the wiring between them (seam #1 above) doesn't exist.
+
+## 2026-08-30 fresh audit
+
+A full re-audit across all five repos, each independently verified against real tests/git
+history/CI, not against any repo's own prose about itself (the recurring lesson this document
+keeps re-learning). Findings, beyond what's already folded into the sections above:
+
+**veil-proxy**: `cargo test --workspace` — 443 passed, 0 failed. A real CI gap found and fixed
+same day: none of this session's new telemetry code had been run through `cargo fmt`, failing
+CI's `cargo-fmt-check` job on every push since (confirmed across 4 separate CI runs, including
+one unrelated branch that inherited the unformatted code once it landed on `main`). Fixed,
+CI confirmed green afterward. Separately: one CI run also failed a pre-existing, unrelated
+latency-budget test (`detection_latency_...within_the_25ms_budget`, 26.6ms vs. a 25ms budget on
+a loaded runner) — confirmed as a timing flake, not a regression, by checking it passed on every
+other run touching the same code. `Receipt`/`Alert` serialization, the aggregator, and OS-keychain
+key sourcing remain exactly as unbuilt as previously documented.
+
+**veil-observatory**: 551 passed, 1 skipped, 0 failed. Confirmed still true: edge events do not
+reach `Correlator`/`FindingEngine` (zero references either way), zero custodian callers, the
+finding-history hash chain is still explicitly unkeyed (`storage/local.py`'s own comments,
+unchanged), `veil.receipt.v2` still does not exist on disk, the HTTP receiver is still
+loopback-only with no TLS/auth beyond the payload HMAC.
+
+**veil-custodian**: untouched by this session's work, as expected. Zero external callers
+confirmed still true (grepped veil-proxy and veil-observatory for any client code). Real
+progress since 2026-08-24 unrelated to this session: ADR-N/O/P/Q landed, closing a real bug
+(mismatched device-rotation pointer links) plus mTLS-termination-boundary and CRL-format
+clarifications.
+
+**veil-foundations**: redaction confirmed clean (zero residual hits). Module status unchanged —
+still one module, still validated against a mock provider only, never applied against a real AWS
+account. A gap this audit itself found and fixed: the redaction fix had no
+`docs/decisions.md`/`docs/next-actions.md` entry, only a commit message — this repo's own
+documentation contract wasn't followed for it. Fixed.
+
+**veil-demo, the sharpest finding**: the live deployment is down. `curl`/TLS to
+`veil-demo.fly.dev` fails mid-handshake, and `fly status` reports *"trial has ended, please add
+a credit card"* — a billing/infrastructure lapse, not a code defect. Separately, the pinned
+`veilgremlin` rev (`0a4ec71...`, itself the exact commit this session's work started from) is
+now a confirmed **8 commits behind** `veilgremlin`'s current `main`. Both findings are
+independent of each other and both need a human decision: whether to fund/restore the Fly
+deployment, and whether/when to bump the pin now that the gap has grown by a full feature
+(the edge_event.v1 signing/emitter work).
+
+**Ecosystem-level**: 9 PRs opened and merged this session across veilgremlin (2), veil-observatory
+(3), veil-foundations (2), veil-ecosystem (2), and agentic-tekton (1) — all reviewable in each
+repo's PR history. Seam #1 (veil-proxy → veil-observatory) is now the second real, demonstrated
+integration alongside veil-proxy → veil-demo — except the demo half of that pair is currently
+non-functional in production, which is itself worth naming as a small irony: the ecosystem's
+oldest "real" integration is down while its newest one just came up.
 
 ## Keeping this current
 
