@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veil-ecosystem/schemas/veil.ecostatus.v1.schema.json",
+  "title": "veil.ecostatus.v1",
+  "description": "The VeilGremlin family's status document. Every observed field carries its own provenance (source, observed_at) rather than being asserted as a bare value -- see docs/interactive-plan.md section 0 for why. A public export is produced by filtering this document down to tier: public fields, never by hand-writing a separate file.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "repos", "integrations", "runtime"],
+  "properties": {
+    "schema_version": { "const": "veil.ecostatus.v1" },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this document was produced. Passed in by the caller, not computed by the collector itself, so re-runs are reproducible and testable."
+    },
+    "repos": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/repo" }
+    },
+    "integrations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/integration" }
+    },
+    "runtime": {
+      "type": "array",
+      "description": "Reserved for Phase 1's eco.sh up/down/smoke orchestration. Always empty in Phase 0 -- this is a local-only status surface, not an orchestrator yet.",
+      "items": {}
+    },
+    "contradictions": {
+      "type": "array",
+      "description": "Output of the contradiction checker, not the collector -- present only in the checker's own output document, not the raw collected one.",
+      "items": { "$ref": "#/$defs/contradiction" }
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "description": "Wraps any field whose value could plausibly be wrong, stale, or unverifiable -- never a bare value for those fields.",
+      "required": ["value", "source", "observed_at"],
+      "properties": {
+        "value": {},
+        "source": {
+          "type": "string",
+          "enum": ["probed", "machine-derived", "hand-asserted", "unavailable"]
+        },
+        "observed_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "repo": {
+      "type": "object",
+      "required": ["name", "kind", "tier"],
+      "properties": {
+        "name": { "type": "string", "description": "Component name, e.g. veil-enrol." },
+        "kind": {
+          "type": "string",
+          "enum": ["service", "cli", "library", "terraform-module", "docs"],
+          "description": "Added 2026-09-04 to fold veil-enrol in cleanly -- a single-shot CLI has no runtime liveness the way a service does."
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["public", "internal", "local"],
+          "description": "Export tier for this repo's own row. A public export keeps only tier: public rows/fields."
+        },
+        "local_path": { "type": "string" },
+        "github_repo": {
+          "type": ["string", "null"],
+          "description": "Current GitHub repo, e.g. dermdunc/veil-proxy."
+        },
+        "github_repo_aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Former names, e.g. [\"dermdunc/veilgremlin\"] for veil-proxy -- added after veilgremlin's rename went unnoticed by this document for ten days."
+        },
+        "privacy_boundary": { "$ref": "#/$defs/provenance" },
+        "github_visibility": { "$ref": "#/$defs/provenance" },
+        "local_head": { "$ref": "#/$defs/provenance" },
+        "local_branch": { "$ref": "#/$defs/provenance" },
+        "dirty": { "$ref": "#/$defs/provenance" },
+        "remote_head": { "$ref": "#/$defs/provenance" },
+        "ahead": { "$ref": "#/$defs/provenance" },
+        "behind": { "$ref": "#/$defs/provenance" },
+        "has_ci_workflow": { "$ref": "#/$defs/provenance" },
+        "has_ci_proposed": { "$ref": "#/$defs/provenance" }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "required": ["from", "to", "status_enum", "tier"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "status_enum": {
+          "type": "string",
+          "enum": [
+            "wired_and_demonstrated",
+            "built_no_caller",
+            "built_locally_proven",
+            "built_not_live",
+            "missing"
+          ],
+          "description": "The Status-cell convention's canonical enum, matching docs/architecture.md's bold lead phrases exactly."
+        },
+        "detail": { "type": "string" },
+        "verification": {
+          "type": "object",
+          "required": ["value", "source", "observed_at"],
+          "properties": {
+            "value": { "type": "string", "enum": ["hand-asserted", "probed"] },
+            "source": { "type": "string" },
+            "observed_at": { "type": ["string", "null"] }
+          }
+        },
+        "tier": { "type": "string", "enum": ["public", "internal", "local"] }
+      }
+    },
+    "contradiction": {
+      "type": "object",
+      "required": ["rule", "message", "severity"],
+      "properties": {
+        "rule": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "type": "string", "enum": ["error", "warning"] }
+      }
+    }
+  }
+}

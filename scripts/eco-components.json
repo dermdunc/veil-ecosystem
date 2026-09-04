@@ -1,0 +1,50 @@
+{
+  "_comment": "Explicit allow-list of the family's components, per docs/interactive-plan.md section 4's sharpened invariant: the collector must never scan factory-output/ (it now holds several unrelated private repos alongside this family's two private siblings) -- it reads exactly this list and nothing else. base_env, when set, overrides base_dir for that one component (veil-observatory lives outside ~/Development/hekton by design).",
+  "base_dir_env": "VEIL_ECOSYSTEM_COMPONENTS_DIR",
+  "base_dir_default": "..",
+  "components": [
+    {
+      "name": "veil-proxy",
+      "kind": "cli",
+      "relative_path": "veilgremlin",
+      "github_repo": "dermdunc/veil-proxy",
+      "github_repo_aliases": ["dermdunc/veilgremlin"]
+    },
+    {
+      "name": "veil-foundations",
+      "kind": "terraform-module",
+      "relative_path": "veil-foundations",
+      "github_repo": "dermdunc/veil-foundations",
+      "github_repo_aliases": []
+    },
+    {
+      "name": "veil-custodian",
+      "kind": "service",
+      "relative_path": "veil-custodian",
+      "github_repo": "dermdunc/veil-custodian",
+      "github_repo_aliases": []
+    },
+    {
+      "name": "veil-enrol",
+      "kind": "cli",
+      "relative_path": "veil-enrol",
+      "github_repo": "dermdunc/veil-enrol",
+      "github_repo_aliases": []
+    },
+    {
+      "name": "veil-observatory",
+      "kind": "service",
+      "path_env": "VEIL_OBSERVATORY_PATH",
+      "path_env_default": "~/Development/veil-observatory",
+      "github_repo": "dermdunc/veil-observatory",
+      "github_repo_aliases": []
+    },
+    {
+      "name": "veil-demo",
+      "kind": "service",
+      "relative_path": "veil-demo",
+      "github_repo": "dermdunc/veil-demo",
+      "github_repo_aliases": []
+    }
+  ]
+}

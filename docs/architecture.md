@@ -18,22 +18,40 @@ now six components, each with its own repo, maturity level, and privacy boundary
 **veil-enrol**, was added 2026-09-04 — see [Keeping this current](#keeping-this-current) and
 the dated update below for why this table's own count has changed twice now):
 
-| Component | Repo | Role | Privacy |
-|---|---|---|---|
-| **veil-proxy** | [`dermdunc/veilgremlin`](https://github.com/dermdunc/veilgremlin) | Masking data plane — runs on the developer's laptop | public |
-| **veil-foundations** | [`dermdunc/veil-foundations`](https://github.com/dermdunc/veil-foundations) | Terraform control plane for Amazon Bedrock | public (+ private sibling) |
-| **veil-custodian** | [`dermdunc/veil-custodian`](https://github.com/dermdunc/veil-custodian) | Device-pseudonym-to-identity mapping custodian | internal |
-| **veil-enrol** | [`dermdunc/veil-enrol`](https://github.com/dermdunc/veil-enrol) | Operator CLI holding the `enrolment-authority` credential — the sole legitimate caller of veil-custodian's device-enrolment, mTLS-renewal, and signing-key-issuance endpoints | internal |
-| **veil-observatory** | [`dermdunc/veil-observatory`](https://github.com/dermdunc/veil-observatory) | Correlation and assurance plane | local-first (standalone location, outside `~/Development/hekton`; declared `privacy_boundary: local-first`, not a separate "private" value) |
-| **veil-demo** | [`dermdunc/veil-demo`](https://github.com/dermdunc/veil-demo) | Public interactive demo of the masking engine | internal |
+| Component | Repo | Role | Repo privacy | Public surface |
+|---|---|---|---|---|
+| **veil-proxy** | [`dermdunc/veil-proxy`](https://github.com/dermdunc/veil-proxy) | Masking data plane — runs on the developer's laptop | public | source itself (crate git deps) |
+| **veil-foundations** | [`dermdunc/veil-foundations`](https://github.com/dermdunc/veil-foundations) | Terraform control plane for Amazon Bedrock | public (declared) — **repo currently private, an unresolved mismatch, see below** | none |
+| **veil-custodian** | [`dermdunc/veil-custodian`](https://github.com/dermdunc/veil-custodian) | Device-pseudonym-to-identity mapping custodian | internal (repo private, matches) | none |
+| **veil-enrol** | [`dermdunc/veil-enrol`](https://github.com/dermdunc/veil-enrol) | Operator CLI holding the `enrolment-authority` credential — the sole legitimate caller of veil-custodian's device-enrolment, mTLS-renewal, and signing-key-issuance endpoints | internal (repo private, matches) | none |
+| **veil-observatory** | [`dermdunc/veil-observatory`](https://github.com/dermdunc/veil-observatory) | Correlation and assurance plane | local-first (standalone location, outside `~/Development/hekton`; repo private, matches) | none |
+| **veil-demo** | [`dermdunc/veil-demo`](https://github.com/dermdunc/veil-demo) | Public interactive demo of the masking engine | internal (repo private — deliberately, per the two-axis split below, not a contradiction with the next column) | `veil-demo.fly.dev` — **currently down**, see RISK-0006 |
 
-**veil-proxy's repo is still named `veilgremlin` on GitHub.** VeilGremlin was promoted from "the
-name of this one repo" to "the name of the family" on 2026-07-26; the rename of the GitHub
-remote itself was deliberately deferred (no second repo existed yet to disambiguate from) and
-still hasn't happened. Runtime identity — the `.veilgremlin/` state directory, the
+**Two-axis privacy split, added 2026-09-04** (per `docs/interactive-plan.md`'s §3, implemented
+here for the first time): repo privacy and public surface reachability are independent facts,
+not one column collapsed into a single word. veil-demo is the clearest case — the *source* is
+genuinely internal (matches its own `.hekton/project.yaml`, no `private_sibling` declared,
+complete non-public-capable layout) while the *deployed artifact* is (or was, until RISK-0006)
+publicly reachable. Collapsing those into one "internal" or one "public" value gets veil-demo
+wrong in one direction or the other; the columns above are independent on purpose. The
+veil-foundations row is the other live case this split makes precise: its *declared* repo
+privacy and its *actual* GitHub visibility disagree — a real, still-open inconsistency, not a
+rendering choice — and the "public surface" column is separately just `none` regardless of how
+that gets resolved, since no Terraform module here is deployed anywhere.
+
+**Corrected 2026-09-04: veil-proxy's GitHub repo is no longer named `veilgremlin`.** It was
+renamed to `veil-proxy` on GitHub (confirmed via `gh api`, `pushed_at: 2026-09-03`) — this
+document previously asserted, in this exact spot, that the rename "still hasn't happened,"
+which was accurate when written (2026-08-24) and had already gone stale by the time a
+2026-09-04 review caught it, a decent illustration of why "as of `<date>`" claims in this
+document need re-verifying, not re-reading. **The local checkout directory is still named
+`veilgremlin`** (`factory-output/veilgremlin/`) and has not been renamed to match — a live,
+disclosed inconsistency between GitHub-side and local-side naming, not an oversight to quietly
+fix by editing this sentence. VeilGremlin was promoted from "the name of this one repo" to "the
+name of the family" on 2026-07-26; runtime identity — the `.veilgremlin/` state directory, the
 `com.veilgremlin.vault` keychain service, and the `vg` CLI binary — is intentionally unchanged
 and should stay that way: those name the *product*, not the repo, so existing installs and
-vaults keep working regardless of what any repo is called.
+vaults keep working regardless of what any repo or local directory is called.
 
 **veil-foundations was originally named `veil-walled-garden`.** Same deliverable, renamed once
 per-team cost attribution and inference profiles came into scope, which "walled garden" didn't
@@ -42,7 +60,7 @@ what it refers to.
 
 ## Components
 
-### veil-proxy (repo: `veilgremlin`)
+### veil-proxy (GitHub repo: `veil-proxy`, local checkout directory: `veilgremlin`)
 
 The only component that's fully built and running today: 381 tests across 10 crates (verified
 2026-08-24 — an earlier draft of this doc said 270, carried over from a stale audit; see
@@ -342,11 +360,11 @@ even call.
 
 | Integration | Status |
 |---|---|
-| veil-proxy → veil-observatory (signed telemetry receipt) | **Wired and demonstrated live (`EdgeEvent`, not `Receipt`); merged to local `main` on both sides, not pushed.** See 2026-08-29 updates below. |
+| veil-proxy → veil-observatory (signed telemetry receipt) | **Wired and demonstrated.** `EdgeEvent`, not `Receipt`; merged to `main` and pushed to GitHub on both sides (confirmed 2026-09-04 via `git rev-parse` — an earlier draft of this row said "not pushed," which was true 2026-08-29 and stale by 2026-08-30 when PR #58 actually merged to `origin/main`). See 2026-08-29 updates below. |
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
-| veil-observatory → veil-custodian (`attestation/status` + `certificates/crl` + `signing-keys/{key_ref}`) | **Callee built, no caller.** All three endpoints are live in veil-custodian (real axum routes, real handlers, all three are the grants `Role::Observatory` actually holds — see the note below the table); nothing in veil-observatory invokes any of them yet. |
-| veil-enrol → veil-custodian (`POST /devices` enrolment, `.../certificates/renew`, `.../signing-keys`) | **Merged, demonstrated locally, not yet a production integration.** veil-enrol (PR #2, merged to `main` 2026-09-04) is the real, first, and only caller of these three endpoints anywhere in the family, per ADR-D/ADR-N's own design. `scripts/dev-e2e.sh` proves the full loop against a real local veil-custodian instance, including issued-certificate profile verification. What's still missing before this is a production integration rather than a local proof: there is no on-device CSR-generation story yet (a future veilgremlin `vg-cli` writer, not built — see the veil-enrol component section above), and no MDM actually invokes `veil-enrol` today — a human operator runs it by hand. |
-| veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built, but not currently live.** The pin mechanism works; the deployed instance is down. See 2026-08-30 update below. |
+| veil-observatory → veil-custodian (`attestation/status` + `certificates/crl` + `signing-keys/{key_ref}`) | **Built, no caller.** All three endpoints are live in veil-custodian (real axum routes, real handlers, all three are the grants `Role::Observatory` actually holds — see the note below the table); nothing in veil-observatory invokes any of them yet. |
+| veil-enrol → veil-custodian (`POST /devices` enrolment, `.../certificates/renew`, `.../signing-keys`) | **Built, locally proven.** veil-enrol (PR #2, merged to `main` 2026-09-04) is the real, first, and only caller of these three endpoints anywhere in the family, per ADR-D/ADR-N's own design. `scripts/dev-e2e.sh` proves the full loop against a real local veil-custodian instance, including issued-certificate profile verification. Not yet a production integration: there is no on-device CSR-generation story yet (a future veilgremlin `vg-cli` writer, not built — see the veil-enrol component section above), and no MDM actually invokes `veil-enrol` today — a human operator runs it by hand. |
+| veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built, not live.** The pin mechanism works; the deployed instance is down. See 2026-08-30 update below. |
 
 **Update (2026-08-29):** the veil-proxy → veil-observatory crypto/ingestion contract described
 as seam #1 below is no longer purely designed-but-uncalled. Deliberately scoped narrower than

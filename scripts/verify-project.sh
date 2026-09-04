@@ -48,6 +48,25 @@ for path in \
   check_file "$path"
 done
 
+# Phase 0 of docs/interactive-plan.md: the ecosystem contradiction checker.
+# Degrades gracefully when the sibling component repos, gh, or network
+# aren't available (a blank machine per this repo's own reproducibility
+# target) -- facts it can't observe become source: "unavailable" and are
+# skipped by every rule, not a hard failure. Only genuine doc-quality
+# issues (broken links, risk-register drift, a malformed Status cell, an
+# unresolvable pin) fail this step.
+if command -v python3 >/dev/null 2>&1; then
+  log "Running scripts/eco_checker.py"
+  if PYTHON=python3 "$ROOT_DIR/scripts/eco.sh" status; then
+    log "OK: eco_checker.py found no error-severity contradictions"
+  else
+    log "FAILED: eco_checker.py found error-severity contradictions (see above)"
+    failures=$((failures + 1))
+  fi
+else
+  log "SKIPPED: eco_checker.py (no python3 on PATH)"
+fi
+
 if [ "$failures" -ne 0 ]; then
   log "Verification failed with $failures issue(s)"
   exit 1
