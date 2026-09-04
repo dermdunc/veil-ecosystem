@@ -45,12 +45,16 @@ wired today, and where the gaps are.
 - [Architecture](docs/architecture.md) — trust boundaries, integration status, seams, sequencing
 - [Setup](docs/setup.md) — per-component run instructions, honestly scoped
 - [Interactive Ecosystem Plan](docs/interactive-plan.md)
-- [Session Log](docs/session-log.md)
 - [Decisions](docs/decisions.md)
 - [Risks](docs/risks.md)
 - [Project Walkthrough](docs/project-walkthrough.md)
 - [Next Actions](docs/next-actions.md)
 - [Operating Model](docs/operating-model.md)
-- [Human Understanding Check](docs/human-understanding-check.md)
-- [Depth Decision](docs/depth-decision.md)
+
+Session Log, Human Understanding Check, and Depth Decision were previously linked here but
+never resolve on `main`: `docs/session-log.md` is gitignored by design (a local-only session
+record, not published), and `docs/human-understanding-check.md`/`docs/depth-decision.md` were
+never created. Removed 2026-09-04 rather than left as dead links — a contradiction the
+[interactive plan](docs/interactive-plan.md)'s planned checker would have caught mechanically
+once built.
 

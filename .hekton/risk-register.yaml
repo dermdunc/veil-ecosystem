@@ -15,3 +15,85 @@ risks:
     reviewed_date: 2026-08-24
     links:
       - "docs/risks.md"
+  - id: RISK-0002
+    title: "This document goes stale silently — no CI or process ties it to the component repos' actual state"
+    category: documentation
+    likelihood: high
+    impact: high
+    status: open
+    owner: hekton
+    mitigation: >
+      Treat docs/architecture.md's Integration Status table as a required update whenever a
+      cross-repo integration lands in any component repo. Materialised 2026-08-24 (three
+      load-bearing errors in the first draft) and again 2026-09-04 (the veil-proxy →
+      veil-custodian enrolment edge was architecturally impossible under ADR-D/ADR-N since
+      before the document's first draft, uncaught for ten days). Phase 0's contradiction
+      checker (docs/interactive-plan.md) is the first automated mitigation for this risk;
+      the underlying no-CI gap remains open until Phase 0's CI item lands.
+    raised_date: 2026-08-24
+    reviewed_date: 2026-09-04
+    links:
+      - "docs/risks.md"
+      - "docs/decisions.md"
+      - "docs/interactive-plan.md"
+  - id: RISK-0003
+    title: "No cryptographic signing existed in veil-proxy's pipeline, so veil-observatory's real verifier had nothing genuine to check"
+    category: security
+    likelihood: low
+    impact: high
+    status: closed
+    owner: hekton
+    mitigation: >
+      Closed 2026-08-30 for edge_event.v1: signing, the emitter, and the audit-sink wiring
+      all landed and merged, confirmed via a genuine cross-process run. Receipt/veil.receipt.v2
+      signing remains unbuilt, tracked separately in docs/next-actions.md, not part of this
+      risk's closed scope.
+    raised_date: 2026-08-24
+    reviewed_date: 2026-08-30
+    links:
+      - "docs/risks.md"
+  - id: RISK-0004
+    title: "Demask authorisation (--actor/--role) is self-asserted, not authenticated, ecosystem-wide"
+    category: security
+    likelihood: medium
+    impact: high
+    status: open
+    owner: hekton
+    mitigation: "Blocked on real device/actor identity work (veilgremlin product-family.md §6); not started."
+    raised_date: 2026-08-24
+    reviewed_date: 2026-08-24
+    links:
+      - "docs/risks.md"
+  - id: RISK-0005
+    title: "A component repo's own documentation can itself be stale relative to its code, undetectable except by fresh review"
+    category: documentation
+    likelihood: medium
+    impact: medium
+    status: open
+    owner: hekton
+    mitigation: >
+      Materialised in the 3rd review cycle (2026-08-24): veil-observatory's own docs asserted
+      a "structural stub" signature verifier a real implementation had already superseded, and
+      this document copied that stale claim faithfully. Mitigation is procedural, not yet
+      automatable: verify against code, not against any repo's prose about itself, including
+      this one's.
+    raised_date: 2026-08-24
+    reviewed_date: 2026-08-24
+    links:
+      - "docs/risks.md"
+  - id: RISK-0006
+    title: "veil-demo's live deployment is down (Fly.io trial ended, no credit card on file)"
+    category: operations
+    likelihood: high
+    impact: medium
+    status: open
+    owner: hekton
+    mitigation: >
+      Human decision needed: add a credit card and restore the deployment, or accept the demo
+      stays offline. Independent of any code defect — confirmed via a failed TLS handshake and
+      fly status's own error message, 2026-08-30. Still down as of 2026-09-04.
+    raised_date: 2026-08-30
+    reviewed_date: 2026-09-04
+    links:
+      - "docs/risks.md"
+      - "docs/next-actions.md"

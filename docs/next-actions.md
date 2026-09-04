@@ -114,3 +114,84 @@ this repo's creation.
       "built, locally proven" to "merged" — done 2026-09-04.
 - [ ] Decide whether veil-enrol grows a `revoke` subcommand (a second, distinct credential)
       or a separate tool should hold `RevocationAuthority`/`ResolutionAuthority`/`AuditRead`
+
+## Session Update: 2026-09-04 — interactive-plan Phase −1′ + Phase 0 implemented
+
+Fable-model review + Codex adversarial critique of `docs/interactive-plan.md`, reconciled by
+hand, then implemented. See `docs/interactive-plan.md`'s own "2026-09-04 reconciliation"
+section for the full account of what each review pass got right/wrong.
+
+- [x] Fix the three broken README links (`session-log.md`/`human-understanding-check.md`/
+      `depth-decision.md`) — removed with an explanatory note rather than silently deleted
+- [x] Split `docs/architecture.md`'s Privacy column into *Repo privacy* / *Public surface*
+- [x] Correct the veilgremlin→veil-proxy GitHub rename claim in `docs/architecture.md`
+- [x] Adopt the Status-cell enum convention in the Integration Status table
+- [x] Record the retroactive security-exposure decision in `docs/decisions.md`
+- [x] Reconcile `.hekton/risk-register.yaml` with `docs/risks.md` (was 1 risk vs. 6)
+- [x] Build Phase 0: `schemas/veil.ecostatus.v1.schema.json`, `scripts/eco_collector.py`,
+      `scripts/eco_checker.py`, `scripts/eco.sh`, `scripts/eco-components.json`, 17 unit
+      tests, wired into `scripts/verify-project.sh`. Verified end-to-end against the real 6
+      repos: 0 errors, 1 disclosed warning (the still-open veil-foundations mismatch).
+- [x] Found and fixed incidentally: `scripts/verify-project.sh` has checked for
+      `docs/local-assumptions.md` since this repo's original scaffold, but the file is
+      gitignored (machine-local, same class as `docs/session-log.md`) and
+      `scripts/bootstrap-project.sh` never generated it — pure boilerplate, a literal `TODO`
+      where project-specific setup should be. `verify-project.sh` had apparently never
+      actually passed on a real bootstrap flow before this fix. Fixed properly, not
+      papered over: `bootstrap-project.sh` now generates the file if missing (verified by
+      deleting it and re-running bootstrap from scratch), rather than just hand-creating one
+      copy that would still be missing on the next fresh clone.
+- [x] Single-model doubt-driven-development review of the collector/checker (Codex not
+      invoked this round, disclosed — see `docs/decisions.md`), found and fixed 8 issues:
+      `eco.sh status` not actually rendering repo facts (the biggest one), `tier` hardcoded
+      instead of derived, a typo/offline ambiguity in the GitHub probes, `generated_at` not
+      actually injectable despite the schema's own claim that it was, `check_demo_pin` only
+      checking one of six crate pins, a malformed table row silently dropped instead of
+      flagged, plus two dead/unimplemented pieces (`unavailable()`'s unused parameter,
+      `$VEIL_ECO_COMPONENTS_FILE` documented but not read).
+
+**Deliberately deferred, not built in this PR** (disclosed, not silently dropped):
+
+- [ ] **CI for veil-ecosystem itself.** `.github/workflows/` is a protected path under this
+      machine's git-guardrail hook — same class as `Cargo.toml` in the Rust repos. Draft
+      content for a human to commit via `HEKTON_ALLOW_PROTECTED=1` (matching veil-custodian's
+      own precedent), once approved:
+      ```yaml
+      # .github/workflows/ci.yml
+      name: CI
+      on: [push, pull_request]
+      jobs:
+        verify:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - run: bash scripts/verify-project.sh
+      ```
+      Note this will only exercise the file-existence checks and the eco checker's
+      non-git-dependent rules in CI (no sibling checkouts, no `gh` auth) — full coverage
+      still needs to run locally, same as veil-custodian's own DB-dependent test split.
+- [ ] veil-demo's `.hekton/project.yaml` annotation (a comment recording that the repo is
+      deliberately internal while shipping a public deployment) — a different repo's file;
+      deliberately not bundled into this cross-repo-touching PR.
+- [ ] veil-foundations' `privacy_boundary` vs. actual GitHub visibility mismatch — still
+      genuinely unresolved 11+ days after first found; needs a human call on which one is
+      wrong, then a fix in that repo.
+- [ ] veil-observatory's `ci-proposed/README.md` stale "no GitHub remote at all yet" claim —
+      a different repo's file.
+- [ ] `veil-enrol/scripts/dev-e2e.sh` doesn't persist a last-run result — needs a small
+      wrapper writing a timestamp + pass/fail JSON file before the collector can wire the
+      veil-enrol → veil-custodian integration row's `verification` from
+      hand-asserted to probed, as designed in `docs/interactive-plan.md` §4.
+- [ ] The role/credential coverage matrix (which of veil-custodian's 5 roles are held by
+      which component, which are orphaned) — deliberately not built, per a Codex finding that
+      it risks duplicating veil-custodian's own `src/bin/mutual-exclusivity-check.rs` and IAM
+      separation-of-duties design. If built later, it must be a read-only view over
+      veil-custodian's own source, never a second source of truth.
+- [ ] `credentials_held[]` schema field — deferred as under-specified (a naive collector
+      implementation could probe exactly the sensitive stores — OS keychains, credential
+      files — it should stay away from). Needs its own design pass before building.
+- [ ] JSON Schema validation of the collector's actual output against
+      `schemas/veil.ecostatus.v1.schema.json` isn't automated — `jsonschema` isn't a stdlib
+      module and this repo deliberately avoids adding a Python dependency for a docs repo.
+      Either add the dependency deliberately (a real decision, not a default) or hand-write a
+      lightweight structural check.
