@@ -159,9 +159,12 @@ local issuance receipt), three non-mutating (`csr-check`, `whoami`, `config chec
 local-only (`expiring`, the answer to the 30-day signing-cert cliff — no server-side
 discovery endpoint exists for this yet).
 
-- **Status:** v1 built 2026-09-04, `dermdunc/veil-enrol` PR #2, **open, not merged.** 15
-  commits, two doubt-driven-development rounds (crypto core, then the full CLI; 18 combined
-  findings, all fixed) against a repo scaffolded fresh for this purpose. It never generates
+- **Status:** v1 built 2026-09-04, `dermdunc/veil-enrol` PR #2, **merged to `main`
+  2026-09-04.** 15 commits, two doubt-driven-development rounds (crypto core, then the full
+  CLI; 18 combined findings, all fixed) against a repo scaffolded fresh for this purpose.
+  Merging closes the "PR unmerged" gap named below but not the other two: there is still no
+  on-device CSR-generation story and no MDM invokes it automatically — an operator still
+  runs it by hand. It never generates
   or sees a device private key — it validates and relays a CSR the device already produced,
   the same discipline ADR-M applies on veil-custodian's side, enforced here by both unit
   tests and a source-text structural test (`tests/structural.rs`) confirming no
@@ -300,8 +303,8 @@ audit's own named list); a sixth — veil-enrol → veil-custodian — was added
 existing row. As of 2026-08-30, re-verified again 2026-09-04 for this update only against the
 two repos it touches (see [Keeping this current](#keeping-this-current)): **one is wired and
 demonstrated in production terms (merged, cross-process, though currently unpushed to
-GitHub); one more is now built and locally e2e-proven but unmerged (veil-enrol →
-veil-custodian, new this update); the remaining four are still designed-but-uncalled,
+GitHub); one more is now merged and locally e2e-proven but has no automated caller yet
+(veil-enrol → veil-custodian, new this update); the remaining four are still designed-but-uncalled,
 demonstrated-but-currently-down, or entirely missing** — not a clean real/unreal split, see
 the table for each one's actual status.
 
@@ -329,7 +332,7 @@ flowchart TB
     VP -. "signed receipt / telemetry: type exists, no emitter" .-> OBS
     WG -. "CloudTrail / Bedrock logs: not deployed" .-> OBS
     OBS -. "GET attestation/status + GET certificates/crl: built, zero callers" .-> CUST
-    ENROL == "enrol / renew-cert / issue-signing-key: built, e2e-proven locally, PR open not merged" ==> CUST
+    ENROL == "enrol / renew-cert / issue-signing-key: merged, e2e-proven locally, no automated caller yet" ==> CUST
     VP == "vg-core as pinned git dep: live" ==> DEMO
 ```
 
@@ -342,7 +345,7 @@ even call.
 | veil-proxy → veil-observatory (signed telemetry receipt) | **Wired and demonstrated live (`EdgeEvent`, not `Receipt`); merged to local `main` on both sides, not pushed.** See 2026-08-29 updates below. |
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
 | veil-observatory → veil-custodian (`attestation/status` + `certificates/crl` + `signing-keys/{key_ref}`) | **Callee built, no caller.** All three endpoints are live in veil-custodian (real axum routes, real handlers, all three are the grants `Role::Observatory` actually holds — see the note below the table); nothing in veil-observatory invokes any of them yet. |
-| veil-enrol → veil-custodian (`POST /devices` enrolment, `.../certificates/renew`, `.../signing-keys`) | **Built and demonstrated locally, not yet a production integration.** veil-enrol (added 2026-09-04, PR #2, open — not merged) is the real, first, and only caller of these three endpoints anywhere in the family, per ADR-D/ADR-N's own design. `scripts/dev-e2e.sh` proves the full loop against a real local veil-custodian instance, including issued-certificate profile verification. What's still missing before this is a production integration rather than a local proof: the PR is unmerged, there is no on-device CSR-generation story yet (a future veilgremlin `vg-cli` writer, not built — see the veil-enrol component section above), and no MDM actually invokes `veil-enrol` today — a human operator runs it by hand. |
+| veil-enrol → veil-custodian (`POST /devices` enrolment, `.../certificates/renew`, `.../signing-keys`) | **Merged, demonstrated locally, not yet a production integration.** veil-enrol (PR #2, merged to `main` 2026-09-04) is the real, first, and only caller of these three endpoints anywhere in the family, per ADR-D/ADR-N's own design. `scripts/dev-e2e.sh` proves the full loop against a real local veil-custodian instance, including issued-certificate profile verification. What's still missing before this is a production integration rather than a local proof: there is no on-device CSR-generation story yet (a future veilgremlin `vg-cli` writer, not built — see the veil-enrol component section above), and no MDM actually invokes `veil-enrol` today — a human operator runs it by hand. |
 | veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built, but not currently live.** The pin mechanism works; the deployed instance is down. See 2026-08-30 update below. |
 
 **Update (2026-08-29):** the veil-proxy → veil-observatory crypto/ingestion contract described
@@ -434,9 +437,9 @@ reconciled against live repo state 2026-08-24):
    callers, despite the API itself now being real" — that framing bundled two independent
    gaps that closed at different times and belonged to different roles. veil-enrol (new
    this update) is now a real, tested, locally-e2e-proven caller of the three
-   `EnrolmentAuthority`-gated routes (enrol, renew, issue-signing-key) — but its PR is
-   unmerged and no MDM invokes it automatically, so this is "built and proven," not yet
-   "running in production." The other half is unchanged: nothing calls any of
+   `EnrolmentAuthority`-gated routes (enrol, renew, issue-signing-key) — merged to `main`
+   2026-09-04, but no MDM invokes it automatically yet, so this is "built and proven," not
+   yet "running in production." The other half is unchanged: nothing calls any of
    `Role::Observatory`'s three grants (`attestation/status`, `certificates/crl`,
    `signing-keys/{key_ref}`) from veil-observatory, and nothing holds the
    `RevocationAuthority`/`ResolutionAuthority`/`AuditRead` credentials at all — see the note
@@ -563,7 +566,7 @@ component section and the Integration Status table:
 - veil-enrol (`dermdunc/veil-enrol`) was scaffolded, planned (a three-model draft-then-
   synthesize process, then an adversarial codex critique pass against the synthesized plan),
   and built to v1 in this same window — 15 commits, two doubt-driven-development rounds, PR
-  #2 open, not merged.
+  #2, merged to `main` 2026-09-04.
 - This produces the first real, demonstrated (locally) closure of the ADR-D/ADR-N/ADR-S trust
   chain — a real device CSR, enrolled, issued a telemetry signing certificate matching
   veilgremlin's own certificate-profile validation exactly, and mTLS-renewed, all against a
@@ -574,9 +577,11 @@ component section and the Integration Status table:
   possible under ADR-D/ADR-N (a device may never call the custodian directly). No review
   cycle had caught this because no component existed yet whose absence would have made the
   error obvious — it took building the real caller to notice the diagram had the wrong one.
-- Not yet done, tracked in `docs/next-actions.md` here: bump this document's own component
-  count references if any were missed by this pass, and revisit once veil-enrol's PR #2
-  either merges or a human decision changes its scope.
+- **Update (2026-09-04, same day, later): PR #2 merged.** All "PR open, not merged" language
+  in this document was flipped to "merged" in the same pass. What's still genuinely open:
+  no on-device CSR-generation story, and no MDM invokes veil-enrol automatically — an
+  operator still runs it by hand. See `docs/next-actions.md` for the still-unclaimed
+  `RevocationAuthority`/`ResolutionAuthority`/`AuditRead` follow-up.
 
 ## Keeping this current
 

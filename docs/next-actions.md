@@ -73,10 +73,9 @@ this repo's creation.
 - Stand up one sandbox AWS account and apply veil-foundations' module against it
 - Build the veil-proxy signer, once the wire format is stable (deliberately last) — the
   veil-observatory verifier side is already real
-- Once veil-enrol's PR #2 merges: update `docs/architecture.md`'s Integration Status table
-  and the veil-enrol component section from "built, locally proven, PR open" to "merged" —
-  do not let this document's own claim about the PR's state go stale the way the
-  `veil-proxy → veil-custodian` edge did
+- [x] ~~Once veil-enrol's PR #2 merges: update `docs/architecture.md`'s Integration Status
+      table and the veil-enrol component section from "built, locally proven, PR open" to
+      "merged"~~ — done 2026-09-04, same day PR #2 merged.
 - No component holds the `RevocationAuthority`, `ResolutionAuthority`, or `AuditRead`
   credentials yet (see `docs/architecture.md`'s 2026-09-04 role-audit note) — worth a
   decision on whether veil-enrol grows a `revoke` subcommand under a second credential, or
@@ -111,7 +110,7 @@ this repo's creation.
       against `src/authz/mod.rs` and each handler
 - [x] Record the veil-custodian `device_binding`/`ON CONFLICT` gap found running veil-enrol's
       end-to-end script, in this document's veil-custodian section
-- [ ] Once veil-enrol PR #2 merges: flip its status here and in `docs/architecture.md` from
-      "built, locally proven" to "merged"
+- [x] Once veil-enrol PR #2 merges: flip its status here and in `docs/architecture.md` from
+      "built, locally proven" to "merged" — done 2026-09-04.
 - [ ] Decide whether veil-enrol grows a `revoke` subcommand (a second, distinct credential)
       or a separate tool should hold `RevocationAuthority`/`ResolutionAuthority`/`AuditRead`
