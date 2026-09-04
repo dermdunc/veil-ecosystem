@@ -5,7 +5,7 @@
 **Owner:** hekton
 **Promotion target:** `none`
 
-> Master architecture repo for the VeilGremlin product family: describes the trust boundaries, data flows, and integration seams across veil-proxy, veil-foundations, veil-custodian, veil-observatory, and veil-demo, and documents how to stand up each component today.
+> Master architecture repo for the VeilGremlin product family: describes the trust boundaries, data flows, and integration seams across veil-proxy, veil-foundations, veil-custodian, veil-enrol, veil-observatory, and veil-demo, and documents how to stand up each component today.
 
 ## Implementation Status
 
@@ -26,6 +26,7 @@ Vault mutation policy: see `vault_mutation_allowed` in `.hekton/project.yaml` (a
 | veil-proxy | [dermdunc/veilgremlin](https://github.com/dermdunc/veilgremlin) | Masking data plane (laptop) |
 | veil-foundations | [dermdunc/veil-foundations](https://github.com/dermdunc/veil-foundations) | AWS Bedrock control plane (Terraform) |
 | veil-custodian | [dermdunc/veil-custodian](https://github.com/dermdunc/veil-custodian) | Device-pseudonym-to-identity mapping custodian |
+| veil-enrol | [dermdunc/veil-enrol](https://github.com/dermdunc/veil-enrol) | Operator CLI — the enrolment authority; sole legitimate caller of veil-custodian's enrolment/renewal/signing-key-issuance endpoints (ADR-D/ADR-N) |
 | veil-observatory | [dermdunc/veil-observatory](https://github.com/dermdunc/veil-observatory) | Correlation & assurance plane |
 | veil-demo | [dermdunc/veil-demo](https://github.com/dermdunc/veil-demo) | Public interactive demo — [live](https://veil-demo.fly.dev/) |
 

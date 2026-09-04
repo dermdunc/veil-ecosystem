@@ -14,13 +14,16 @@ It will drift out of date the moment any component repo changes — see
 **VeilGremlin** is the umbrella name for a product family aimed at one problem: keep real PII
 and sensitive enterprise identifiers out of an AI coding agent's cloud context, and give
 regulated organisations a way to prove that's happening. No single repo is "VeilGremlin" — it's
-five components, each with its own repo, maturity level, and privacy boundary:
+now six components, each with its own repo, maturity level, and privacy boundary (a sixth,
+**veil-enrol**, was added 2026-09-04 — see [Keeping this current](#keeping-this-current) and
+the dated update below for why this table's own count has changed twice now):
 
 | Component | Repo | Role | Privacy |
 |---|---|---|---|
 | **veil-proxy** | [`dermdunc/veilgremlin`](https://github.com/dermdunc/veilgremlin) | Masking data plane — runs on the developer's laptop | public |
 | **veil-foundations** | [`dermdunc/veil-foundations`](https://github.com/dermdunc/veil-foundations) | Terraform control plane for Amazon Bedrock | public (+ private sibling) |
 | **veil-custodian** | [`dermdunc/veil-custodian`](https://github.com/dermdunc/veil-custodian) | Device-pseudonym-to-identity mapping custodian | internal |
+| **veil-enrol** | [`dermdunc/veil-enrol`](https://github.com/dermdunc/veil-enrol) | Operator CLI holding the `enrolment-authority` credential — the sole legitimate caller of veil-custodian's device-enrolment, mTLS-renewal, and signing-key-issuance endpoints | internal |
 | **veil-observatory** | [`dermdunc/veil-observatory`](https://github.com/dermdunc/veil-observatory) | Correlation and assurance plane | local-first (standalone location, outside `~/Development/hekton`; declared `privacy_boundary: local-first`, not a separate "private" value) |
 | **veil-demo** | [`dermdunc/veil-demo`](https://github.com/dermdunc/veil-demo) | Public interactive demo of the masking engine | internal |
 
@@ -125,6 +128,67 @@ applies to *content* (`MappingRef` → vault → `rehydrate`, gated by policy), 
   substantive test, not boilerplate). All 19 require a live database via `DATABASE_URL`, not
   documented in this repo's own `docs/setup.md` — see [setup.md](setup.md) here for the caveat,
   including why the default `cargo test` invocation never even reaches `db_grants`.
+- **New gap, found 2026-09-04 running veil-enrol's end-to-end script against a real
+  instance (see the veil-enrol section below):** `device_mapping`'s UNIQUE index on
+  `device_binding` (`migrations/0002_device_mapping.sql`) isn't covered by the enrolment
+  store's `INSERT ... ON CONFLICT (enrolment_authority_ref)` clause — a `device_binding`
+  collision (a realistic operator mistake, e.g. reusing an MDM device ID) surfaces as an
+  unhandled Postgres error, not the clean 409 other conflict paths document. Not fixed —
+  tracked in veil-enrol's `docs/next-actions.md`, this repo's actual problem to fix. Also
+  new since the 2026-08-30 audit: ADR-S (Milestone 7) shipped and merged to `main`
+  2026-08-31/09-03 — two more real, routed, authorised endpoints not reflected in this
+  section's route count above, `POST /v1/devices/{pseudonym}/signing-keys`
+  (`EnrolmentAuthority`-gated, same role as enrolment/renewal) and
+  `GET /v1/signing-keys/{key_ref}` (`Observatory`-gated, same role as `attestation/status`
+  and `certificates/crl` — a third grant for that role, not two as this section's own count
+  above still implies). See the [Integration Status](#integration-status) table below,
+  updated for this change.
+
+### veil-enrol
+
+**New 2026-09-04.** A single-shot operator CLI, never a daemon — the missing piece
+ADR-D/ADR-N (veil-custodian's own decision log, 2026-07-26/2026-08-23) name but leave
+unbuilt: "a device never calls the custodian; only the enrolment authority and the
+resolution authority do." Before this repo existed, that meant veil-custodian's enrolment,
+mTLS-renewal, and (as of ADR-S, 2026-08-31) signing-key-issuance endpoints were real,
+routed, and authorised — but had no legitimate caller anywhere in the family. veil-enrol is
+that caller: it holds the `enrolment-authority` credential (OS keychain or a
+permission-checked file, mirroring veilgremlin's own `vg-vault` pattern) and exposes seven
+subcommands — three mutating (`enrol`, `renew-cert`, `issue-signing-key`, each writing a
+local issuance receipt), three non-mutating (`csr-check`, `whoami`, `config check`), and one
+local-only (`expiring`, the answer to the 30-day signing-cert cliff — no server-side
+discovery endpoint exists for this yet).
+
+- **Status:** v1 built 2026-09-04, `dermdunc/veil-enrol` PR #2, **open, not merged.** 15
+  commits, two doubt-driven-development rounds (crypto core, then the full CLI; 18 combined
+  findings, all fixed) against a repo scaffolded fresh for this purpose. It never generates
+  or sees a device private key — it validates and relays a CSR the device already produced,
+  the same discipline ADR-M applies on veil-custodian's side, enforced here by both unit
+  tests and a source-text structural test (`tests/structural.rs`) confirming no
+  key-generation symbol is reachable from its CSR-handling path and that `rcgen` isn't even
+  a dependency.
+- **The first real proof the ADR-D/ADR-N/ADR-S trust chain closes end-to-end, anywhere in
+  this family:** `scripts/dev-e2e.sh` drives a real openssl-generated device CSR through a
+  real local veil-custodian instance (not a mock) — `csr-check` → `enrol` →
+  `issue-signing-key` → `renew-cert` → `expiring` — and verifies the issued signing
+  certificate's SAN/EKU/KU/SPKI match ADR-S's profile exactly, byte-for-byte via
+  `openssl x509 -text`. Run twice consecutively to confirm repeatability. This is a **local
+  proof, not a production caller** — see [Integration Status](#integration-status).
+- **What it is not:** a device-side binary (an earlier 3-way disagreement in this repo's own
+  planning process considered and rejected shipping one — see veil-enrol's own
+  `docs/decisions.md`, ADR-VE-001), and not the eventual production enrolment path either —
+  `docs/next-actions.md` here and in veilgremlin both still name the real long-term home for
+  on-device CSR generation as a future `vg-cli` keychain-writer subcommand
+  (`vg enrol request-csr`), not yet built anywhere.
+- **Explicitly deferred in v1**, tracked in its own `docs/next-actions.md`: a
+  `renew-signing-key` subcommand (veil-custodian has no renewal endpoint for signing keys
+  yet, only mTLS certs); contract-fixture drift-check automation; two accepted, documented
+  `cargo-deny` advisories (`rustls-pemfile`, `async-std`, both unmaintained-not-vulnerable).
+  A real veil-custodian bug was found running the e2e script, not fixed here (different
+  repo's problem, noted in the veil-custodian section above): `device_mapping`'s UNIQUE
+  index on `device_binding` isn't covered by the store's `ON CONFLICT` clause, so a
+  collision (a realistic operator mistake — reusing an MDM device ID) surfaces as an
+  unhandled 500, not a clean 409.
 
 ### veil-observatory
 
@@ -230,11 +294,28 @@ transmitted yet, regardless of construction path.
 
 ## Integration Status
 
-Five cross-repo integrations are called for by the design (per the 2026-08-22 audit's own named
-list). As of 2026-08-24 (re-verified against the actual repos — see
-[Keeping this current](#keeping-this-current)), **one is real; four are still designed-but-
-uncalled or missing** — but two of the "unbuilt" callees have grown real implementations since
-the audit, so "no caller yet" is now the more accurate frame than "unbuilt" for those two.
+Five cross-repo integrations were originally called for by the design (per the 2026-08-22
+audit's own named list); a sixth — veil-enrol → veil-custodian — was added to the family
+2026-09-04 and is described here alongside the original five, not folded silently into an
+existing row. As of 2026-08-30, re-verified again 2026-09-04 for this update only against the
+two repos it touches (see [Keeping this current](#keeping-this-current)): **one is wired and
+demonstrated in production terms (merged, cross-process, though currently unpushed to
+GitHub); one more is now built and locally e2e-proven but unmerged (veil-enrol →
+veil-custodian, new this update); the remaining four are still designed-but-uncalled,
+demonstrated-but-currently-down, or entirely missing** — not a clean real/unreal split, see
+the table for each one's actual status.
+
+**Correction (2026-09-04):** the diagram and table below previously showed
+`veil-proxy → veil-custodian ("POST /devices enrolment")`. That edge was never
+architecturally correct — ADR-D (2026-07-26) and ADR-N (2026-08-23), both ratified *before*
+this document's original 2026-08-24 draft, establish that a device never calls the custodian
+directly, for enrolment or anything else; only the enrolment authority does. This document
+carried the wrong edge for its entire first ten days because no operator-authority component
+existed yet to draw instead — exactly the "verify against the actual repo, not against this
+document's own prior claims" failure mode named in
+[Keeping this current](#keeping-this-current), this time caught by a real component finally
+being built rather than by a review cycle. Replaced below with the correct caller,
+veil-enrol.
 
 ```mermaid
 flowchart TB
@@ -242,21 +323,26 @@ flowchart TB
     WG["veil-foundations<br/>AWS Bedrock control plane"]
     OBS["veil-observatory<br/>correlation & assurance"]
     CUST["veil-custodian<br/>pseudonym resolution"]
+    ENROL["veil-enrol<br/>operator enrolment CLI"]
     DEMO["veil-demo<br/>public playground"]
 
     VP -. "signed receipt / telemetry: type exists, no emitter" .-> OBS
     WG -. "CloudTrail / Bedrock logs: not deployed" .-> OBS
-    OBS -. "GET attestation/status: built, zero callers" .-> CUST
-    VP -. "POST /devices enrolment: built, zero callers" .-> CUST
+    OBS -. "GET attestation/status + GET certificates/crl: built, zero callers" .-> CUST
+    ENROL == "enrol / renew-cert / issue-signing-key: built, e2e-proven locally, PR open not merged" ==> CUST
     VP == "vg-core as pinned git dep: live" ==> DEMO
 ```
+
+Deliberately absent from this diagram: any device → veil-custodian edge. ADR-D/ADR-N forbid
+it structurally, not just by convention — there is no route on veil-custodian a device could
+even call.
 
 | Integration | Status |
 |---|---|
 | veil-proxy → veil-observatory (signed telemetry receipt) | **Wired and demonstrated live (`EdgeEvent`, not `Receipt`); merged to local `main` on both sides, not pushed.** See 2026-08-29 updates below. |
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
-| veil-observatory → veil-custodian (`attestation/status` query) | **Callee built, no caller.** The endpoint is live in veil-custodian (real axum route, real handler); nothing in veil-observatory invokes it yet. |
-| veil-proxy → veil-custodian (`POST /devices` enrolment) | **Callee built, no caller.** The endpoint is live in veil-custodian; nothing in veil-proxy invokes it yet. |
+| veil-observatory → veil-custodian (`attestation/status` + `certificates/crl` + `signing-keys/{key_ref}`) | **Callee built, no caller.** All three endpoints are live in veil-custodian (real axum routes, real handlers, all three are the grants `Role::Observatory` actually holds — see the note below the table); nothing in veil-observatory invokes any of them yet. |
+| veil-enrol → veil-custodian (`POST /devices` enrolment, `.../certificates/renew`, `.../signing-keys`) | **Built and demonstrated locally, not yet a production integration.** veil-enrol (added 2026-09-04, PR #2, open — not merged) is the real, first, and only caller of these three endpoints anywhere in the family, per ADR-D/ADR-N's own design. `scripts/dev-e2e.sh` proves the full loop against a real local veil-custodian instance, including issued-certificate profile verification. What's still missing before this is a production integration rather than a local proof: the PR is unmerged, there is no on-device CSR-generation story yet (a future veilgremlin `vg-cli` writer, not built — see the veil-enrol component section above), and no MDM actually invokes `veil-enrol` today — a human operator runs it by hand. |
 | veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built, but not currently live.** The pin mechanism works; the deployed instance is down. See 2026-08-30 update below. |
 
 **Update (2026-08-29):** the veil-proxy → veil-observatory crypto/ingestion contract described
@@ -301,15 +387,27 @@ no error on either side. See `veilgremlin/docs/build-log/2026-08-29-the-same-str
 for the full story and `veilgremlin/crates/vg-audit/tests/live_edge_event_integration.rs` for
 the exact working invocation.
 
-**Not on the five-integration list above, but worth naming — and, per the 3rd review cycle,
-more complete than the 2nd correction stated:** veil-custodian's real API surface has four more
-endpoints no other repo calls: `/v1/resolutions` (the actual pseudonym-resolution operation),
-device revocation, certificate renewal, and the certificate-revocation list (CRL). The CRL
-endpoint is not merely unlisted — veil-custodian's own authorization code (`src/authz/mod.rs`)
-grants `Role::Observatory` exactly two capabilities: `attestation/status` (listed in the table
-above) **and `/v1/certificates/crl`** (not listed anywhere in this document until now). So the
-observatory→custodian relationship is under-specified above: it's designed to make two calls,
-not one.
+**Updated 2026-09-04 — most of this note is now folded into the table above, not left
+implicit here, and one part of the 3rd-cycle claim below turns out to have been
+incomplete rather than wrong (`src/authz/mod.rs` defines four roles, not two, once you
+read past the two this doc has tracked so far).** `attestation/status`, `certificates/crl`,
+and (new, ADR-S) `GET /signing-keys/{key_ref}` are all `Role::Observatory`'s only three
+grants — three, not the two this section previously named, and the observatory row above
+now reflects the two live-called-nowhere ones. `POST /devices`, `.../certificates/renew`,
+and (new) `.../signing-keys` are `Role::EnrolmentAuthority`-gated and are the veil-enrol row
+above. **Two routes still have no caller anywhere and aren't in either row above, and each
+needs its own credential — they are not the enrolment authority's to call:**
+`POST /devices/{pseudonym}/revoke` is gated on a fourth, *separate* role,
+`Role::RevocationAuthority` (confirmed directly in `src/api/handlers/devices.rs` — not the
+same grant `enrol`/`renew_certificate`/`issue_signing_key` use, despite living in the same
+file), which no component in this family holds yet — veil-enrol's own `docs/decisions.md`
+scopes it to the `enrolment-authority` credential only, so growing a `revoke` subcommand
+there would mean requesting a second, distinct credential, not reusing the one it already
+has. `POST`+`GET /v1/resolutions` are gated on a fifth and sixth role,
+`Role::ResolutionAuthority` and (the `GET` list-endpoint specifically) `Role::AuditRead` —
+also unheld by any component today; veil-observatory's `attestation/status` call
+deliberately answers "is this cert valid," never "who is this," by design, so resolution
+isn't veil-observatory's role to eventually fill either.
 
 ## Where the seams are
 
@@ -331,10 +429,18 @@ reconciled against live repo state 2026-08-24):
    But a working verifier with nothing real to verify (veil-proxy emits no signed receipts yet)
    still means the assurance half of an assurance plane can't be exercised end-to-end today —
    the gap is "no signer," not "no verifier."
-3. **veil-custodian's API has zero callers, despite the API itself now being real.** As of
-   2026-08-23 this is no longer "a contract with no implementation" — it's a running service
-   nobody calls. That's a smaller gap than it was, but still a gap: neither veil-proxy's device
-   enrolment nor veil-observatory's attestation check actually happens.
+3. **Update (2026-09-04): the enrolment-side half of this seam now has a real caller;
+   the observatory-side half still doesn't.** Previously "veil-custodian's API has zero
+   callers, despite the API itself now being real" — that framing bundled two independent
+   gaps that closed at different times and belonged to different roles. veil-enrol (new
+   this update) is now a real, tested, locally-e2e-proven caller of the three
+   `EnrolmentAuthority`-gated routes (enrol, renew, issue-signing-key) — but its PR is
+   unmerged and no MDM invokes it automatically, so this is "built and proven," not yet
+   "running in production." The other half is unchanged: nothing calls any of
+   `Role::Observatory`'s three grants (`attestation/status`, `certificates/crl`,
+   `signing-keys/{key_ref}`) from veil-observatory, and nothing holds the
+   `RevocationAuthority`/`ResolutionAuthority`/`AuditRead` credentials at all — see the note
+   above the Integration Status table for the full role breakdown.
 4. **veil-foundations produces none of the evidence veil-observatory assumes.** No sandbox AWS
    account has been touched; every finding so far is against synthetic fixtures.
 5. **Demask authorisation is open ecosystem-wide.** Actor/role attribution is self-asserted,
@@ -359,10 +465,14 @@ dependency order in `veilgremlin/docs/architecture/product-family.md` §9:
 3. **Build the emitter, retire the fixtures.** The `TelemetryEvent` type and its target schema
    both exist — build the network sender in veil-proxy that actually transmits one; switch
    veil-observatory's ingestion off synthetic fixtures onto real receipts.
-4. **Wire one real custodian call.** veil-custodian's `attestation/status` and `/certificates/crl`
-   endpoints are real, running services as of 2026-08-23 — have veil-observatory call either for
-   real. This proves the "observatory never touches identity" boundary structurally, not just on
-   paper.
+4. **Wire one real observatory→custodian call.** **Partially superseded 2026-09-04: the
+   *enrolment* side of "wire one real custodian call" is now done, by veil-enrol, not by
+   this step** — but that closes a different grant (`EnrolmentAuthority`) than the one this
+   step is actually about. veil-custodian's `attestation/status`, `/certificates/crl`, and
+   (new) `/signing-keys/{key_ref}` endpoints are real, running services, all gated on
+   `Role::Observatory` — have veil-observatory call one of them for real. This proves the
+   "observatory never touches identity" boundary structurally, not just on paper, and
+   remains entirely unstarted.
 5. **Stand up one sandbox AWS account.** Apply veil-foundations' one real module against it,
    then extend to invocation logging. (The Guardrail-mandatory defect an earlier draft of this
    doc flagged here was already fixed via ADR-010 on 2026-08-23 — nothing left to fix before
@@ -437,6 +547,36 @@ repo's PR history. Seam #1 (veil-proxy → veil-observatory) is now the second r
 integration alongside veil-proxy → veil-demo — except the demo half of that pair is currently
 non-functional in production, which is itself worth naming as a small irony: the ecosystem's
 oldest "real" integration is down while its newest one just came up.
+
+## 2026-09-04: veil-enrol added to the family
+
+A sixth component joined between the 2026-08-30 audit above and this update — not found by a
+fresh audit this time, but by the component actually getting built, which is a stronger form
+of verification than a document review pass. Summary, full detail above in the veil-enrol
+component section and the Integration Status table:
+
+- veil-custodian gained two more real endpoints since the 2026-08-30 audit (ADR-S / Milestone
+  7, ratified 2026-08-31, implementation merged to `main` 2026-09-03): signing-key issuance
+  and lookup. This wasn't caught by the 2026-08-30 audit because it hadn't happened yet — the
+  audit is dated, not timeless, the same caveat this document names about itself everywhere
+  else.
+- veil-enrol (`dermdunc/veil-enrol`) was scaffolded, planned (a three-model draft-then-
+  synthesize process, then an adversarial codex critique pass against the synthesized plan),
+  and built to v1 in this same window — 15 commits, two doubt-driven-development rounds, PR
+  #2 open, not merged.
+- This produces the first real, demonstrated (locally) closure of the ADR-D/ADR-N/ADR-S trust
+  chain — a real device CSR, enrolled, issued a telemetry signing certificate matching
+  veilgremlin's own certificate-profile validation exactly, and mTLS-renewed, all against a
+  real (not mocked) local veil-custodian instance.
+- This also surfaced and corrected a real error in this document that had gone unnoticed for
+  its entire first ten days: the Integration Status diagram and table showed
+  `veil-proxy → veil-custodian` for the enrolment call, which was never architecturally
+  possible under ADR-D/ADR-N (a device may never call the custodian directly). No review
+  cycle had caught this because no component existed yet whose absence would have made the
+  error obvious — it took building the real caller to notice the diagram had the wrong one.
+- Not yet done, tracked in `docs/next-actions.md` here: bump this document's own component
+  count references if any were missed by this pass, and revisit once veil-enrol's PR #2
+  either merges or a human decision changes its scope.
 
 ## Keeping this current
 
