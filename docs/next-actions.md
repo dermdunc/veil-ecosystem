@@ -196,3 +196,16 @@ original list):**
       was "described here alongside the original five, not folded silently into an existing
       row" — false; it replaced the row that used to read `veil-proxy → veil-custodian`. The
       table has five rows, not six, and never did.
+
+## Session Update: 2026-09-04 — retired the out-of-band Claude artifact
+
+- [x] The "Veil Ecosystem Audit" Claude artifact no longer carries its own status narrative —
+      it now redirects to this repo's `docs/architecture.md`, with its three prior audit runs
+      kept as a dated historical archive. See `docs/decisions.md` for why (it had become a
+      second, unsynced source of the same facts this repo already tracks).
+- [ ] **Genuinely unresolved, not closed by the above**: there is still no single document for
+      the *cross-repo plan* (as opposed to per-repo backlogs). Today it's split across this
+      repo's `docs/architecture.md` ("Sequencing to close them"), this file, and fragments of
+      cross-repo intent still living in individual repos' own `next-actions.md`. Worth a
+      deliberate decision later on whether that's fine as-is or needs consolidating — not
+      decided today, just named so it doesn't get silently assumed as solved.
