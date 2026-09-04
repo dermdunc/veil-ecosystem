@@ -1,0 +1,96 @@
+cross_repo_deps_version: 1
+# Stable-ID registry of live cross-repo dependencies -- the same pattern
+# risk-register.yaml already uses for risks (stable IDs + a parity check
+# against a human-readable Markdown explanation), applied here so a
+# dependency can be referenced from any repo's own next-actions.md by ID
+# rather than restated independently, which drifts (see docs/decisions.md,
+# 2026-09-04, "Retired the out-of-band audit artifact" and the follow-on
+# entry for this registry).
+#
+# This is an INDEX, not a second narrative: the one-line `title` plus
+# `detail` here should be the shared, canonical statement of what the
+# dependency IS; docs/architecture.md's "Sequencing to close them" section
+# still owns the fuller WHY and current priority ordering. Each repo's own
+# next-actions.md may still add repo-local execution detail (e.g. "run
+# terraform plan here") alongside a reference to the ID -- what it should
+# NOT do is restate the cross-repo dependency's own description
+# independently, which is the exact drift this registry exists to stop.
+#
+# eco_checker.py's check_cross_repo_dep_ids validates that every XREPO-ID
+# referenced anywhere in any of the six repos' next-actions.md actually
+# exists here (a dangling reference), and flags (as a warning, not yet an
+# error, until backfilling is complete) any entry here not yet referenced
+# from at least one of the repos it names.
+deps:
+  - id: XREPO-001
+    title: "veil-observatory has not called any of veil-custodian's three Role::Observatory-gated endpoints (attestation/status, certificates/crl, signing-keys/{key_ref})"
+    repos: [veil-observatory, veil-custodian]
+    status: open
+    raised_date: 2026-08-22
+    reviewed_date: 2026-09-04
+    detail: >
+      All three endpoints are real, routed, and authorised in veil-custodian; nothing in
+      veil-observatory invokes any of them. See docs/architecture.md's Integration Status
+      table and "Sequencing to close them" step 4.
+    links:
+      - "docs/architecture.md#integration-status"
+
+  - id: XREPO-002
+    title: "No sandbox AWS account exists yet to validate veil-foundations' Terraform against, or for veil-observatory to ingest real evidence from"
+    repos: [veil-foundations, veil-observatory]
+    status: open
+    raised_date: 2026-08-22
+    reviewed_date: 2026-09-04
+    detail: >
+      veil-foundations' one real module is validated only against a mock provider; every
+      finding veil-observatory has ever produced is against synthetic fixtures. Standing up
+      one real sandbox account and running Phase 5 of veil-foundations' implementation plan
+      (first real `terraform plan`/`apply`) unblocks both. See docs/architecture.md's
+      "Sequencing to close them" step 5.
+    links:
+      - "docs/architecture.md#sequencing-to-close-them"
+
+  - id: XREPO-003
+    title: "veil-custodian has no signing-key renewal endpoint; veil-enrol has no renew-signing-key subcommand to call it"
+    repos: [veil-custodian, veil-enrol]
+    status: open
+    raised_date: 2026-08-31
+    reviewed_date: 2026-09-04
+    detail: >
+      Both repos independently name the other half of this same gap in their own
+      next-actions.md, without linking to each other -- the exact drift this registry exists
+      to catch. veil-enrol's issue-signing-key command has no corresponding renewal path
+      because veil-custodian has never built one; ADR-VE-004 in veil-enrol deliberately
+      declines to guess the shape until it exists.
+    links: []
+
+  - id: XREPO-004
+    title: "veilgremlin's raw r||s (not DER) ECDSA signature-encoding decision needs sign-off from veil-custodian and veil-observatory before any real cross-repo signing happens"
+    repos: [veilgremlin, veil-custodian, veil-observatory]
+    status: open
+    raised_date: 2026-08-31
+    reviewed_date: 2026-09-04
+    detail: >
+      ADR-S names the signing algorithm but takes no position on signature encoding.
+      veilgremlin's 2026-08-31 acceptance session decided fixed-width raw r||s (64 bytes) over
+      DER, because DER admits multiple valid encodings of one signature and a byte-exact
+      golden vector needs exactly one -- but asks for sign-off before treating that as final.
+      veil-custodian's own next-actions.md records the ask explicitly, disclosing that "the
+      sign-off itself is not this session's to give." veil-observatory's next-actions.md does
+      not mention this ask at all as of 2026-09-04 -- confirmed by direct search, not assumed
+      absent -- meaning this is currently a one-sided request neither addressee has actually
+      seen reflected in their own backlog.
+    links: []
+
+  - id: XREPO-005
+    title: "Should ADR-0014's correlation/determinism suite join the same cross-repo CI veto ADR-0012's raw-content fuzz test already has on a veil-proxy schema-generator PR?"
+    repos: [veil-observatory, veilgremlin]
+    status: open
+    raised_date: 2026-08-23
+    reviewed_date: 2026-09-04
+    detail: >
+      Per veil-observatory's own next-actions.md: only ADR-0012's test is currently named as a
+      blocking gate; extending that to ADR-0014 "needs a cross-repo decision, not a unilateral
+      one." Ratified in veil-proxy/veilgremlin's telemetry-receipt-reconciliation-plan.md §4a
+      for the existing gate; not yet decided for this extension.
+    links: []
