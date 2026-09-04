@@ -67,11 +67,20 @@ this repo's creation.
 
 - Switch veil-observatory's ingestion off synthetic fixtures onto real receipts, once the
   emitter above exists
-- Wire one real veil-observatory → veil-custodian call (`attestation/status` or `/certificates/crl`
-  — both are real, both have zero callers today)
+- Wire one real veil-observatory → veil-custodian call (`attestation/status`,
+  `/certificates/crl`, or `/signing-keys/{key_ref}` — all three are real, all three are
+  `Role::Observatory`-gated, all three have zero callers today)
 - Stand up one sandbox AWS account and apply veil-foundations' module against it
 - Build the veil-proxy signer, once the wire format is stable (deliberately last) — the
   veil-observatory verifier side is already real
+- Once veil-enrol's PR #2 merges: update `docs/architecture.md`'s Integration Status table
+  and the veil-enrol component section from "built, locally proven, PR open" to "merged" —
+  do not let this document's own claim about the PR's state go stale the way the
+  `veil-proxy → veil-custodian` edge did
+- No component holds the `RevocationAuthority`, `ResolutionAuthority`, or `AuditRead`
+  credentials yet (see `docs/architecture.md`'s 2026-09-04 role-audit note) — worth a
+  decision on whether veil-enrol grows a `revoke` subcommand under a second credential, or
+  a separate operator tool is the right home for revocation and resolution instead
 
 ## Session Update: 2026-08-30 — fresh 5-repo audit
 
@@ -88,3 +97,21 @@ this repo's creation.
 - [ ] Everything else from the 2026-08-24 sequencing (custodian caller, AWS sandbox, the
       aggregator/Receipt path) remains open and unchanged by this session's work, which was
       scoped to seam #1's `EdgeEvent` slice only.
+
+## Session Update: 2026-09-04 — veil-enrol added, enrolment-side custodian caller now real
+
+- [x] Add veil-enrol to `README.md`/`docs/architecture.md` component tables, plus a new
+      `### veil-enrol` component section
+- [x] Correct the `veil-proxy → veil-custodian` enrolment edge (architecturally impossible
+      under ADR-D/ADR-N) to `veil-enrol → veil-custodian` in the diagram and Integration
+      Status table
+- [x] Verify and correct `Role::Observatory`'s actual grant count (three, not two — ADR-S's
+      `signing-keys/{key_ref}` lookup) and `POST .../revoke`'s actual role
+      (`RevocationAuthority`, distinct from the enrolment authority's grant), directly
+      against `src/authz/mod.rs` and each handler
+- [x] Record the veil-custodian `device_binding`/`ON CONFLICT` gap found running veil-enrol's
+      end-to-end script, in this document's veil-custodian section
+- [ ] Once veil-enrol PR #2 merges: flip its status here and in `docs/architecture.md` from
+      "built, locally proven" to "merged"
+- [ ] Decide whether veil-enrol grows a `revoke` subcommand (a second, distinct credential)
+      or a separate tool should hold `RevocationAuthority`/`ResolutionAuthority`/`AuditRead`
