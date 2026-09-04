@@ -22,7 +22,7 @@ documented -> scripted -> idempotent-ish -> logged -> reproducible on a blank ma
 ### veil-proxy — runnable standalone today
 
 ```bash
-git clone git@github.com:dermdunc/veilgremlin.git
+git clone git@github.com:dermdunc/veil-proxy.git veilgremlin
 cd veilgremlin
 cargo build --release -p vg-cli
 export PATH="$PWD/target/release:$PATH"
@@ -53,7 +53,9 @@ cargo run
 cargo test    # integration tests, hit the real vg-core engine end-to-end
 ```
 
-Or just visit [veil-demo.fly.dev](https://veil-demo.fly.dev/) — already live. Co-developing
+Or just visit [veil-demo.fly.dev](https://veil-demo.fly.dev/) — **currently down** (Fly.io
+trial ended, RISK-0006 in `docs/risks.md`, still unresolved as of 2026-09-04), so `cargo run`
+locally is the only way to actually see it run today. Co-developing
 against a local veil-proxy checkout: copy `.cargo/config.toml.example` to `.cargo/config.toml`
 (gitignored) in veil-demo to patch the git dependency back to your local `veilgremlin` path —
 see that repo's `docs/decisions.md`.
@@ -95,12 +97,34 @@ separate integration-test binary, `tests/db_grants.rs`, has 4 more that prove a 
 INSERT-only grant on the resolution audit log; run `cargo test --no-fail-fast` to see all 19, or
 just `cargo test --test db_grants` for that target alone). All require a live database via
 `DATABASE_URL`. See that repo's `.env.example` for the expected shape; 62 non-Postgres tests
-pass with no setup at all. **Nothing in the ecosystem calls its API yet** — the service is real,
-but has zero external callers today. **This repo's own `docs/setup.md` doesn't mention
+pass with no setup at all. **Corrected 2026-09-04: no longer true that nothing calls its
+API** — veil-enrol is now a real, locally-proven caller of three of its endpoints (enrolment,
+mTLS renewal, signing-key issuance); see the veil-enrol section below. Still true: no
+component calls its `attestation/status`, `certificates/crl`, or `signing-keys/{key_ref}`
+endpoints (the `Role::Observatory`-gated ones) — veil-observatory remains a zero-caller
+integration on that side. **This repo's own `docs/setup.md` doesn't mention
 `DATABASE_URL` either** — worth noting it's not a more authoritative source than this section:
 verified 2026-08-24, it's the same generic Hekton scaffold boilerplate
 (`check-prereqs.sh`/`bootstrap-project.sh`/`verify-project.sh` + two `TODO` lines) as
 veil-observatory's, not a legitimate reference this doc is merely summarising.
+
+### veil-enrol — new 2026-09-04, real operator CLI, real end-to-end proof
+
+```bash
+git clone git@github.com:dermdunc/veil-enrol.git
+cd veil-enrol
+cargo test
+cargo test --features dev-header-auth
+```
+
+A single-shot CLI (never a daemon), not a service — nothing to run persistently. Holds the
+`enrolment-authority` credential and is the only legitimate caller of veil-custodian's
+enrolment/renewal/signing-key-issuance endpoints, per ADR-D/ADR-N. `scripts/dev-e2e.sh` drives
+the full loop (openssl CSR → `csr-check` → `enrol` → `issue-signing-key` → `renew-cert` →
+`expiring`) against a real local veil-custodian instance — the only component in this family
+with a scripted, working, real cross-repo integration test. Requires the veil-custodian dev-db
+(`../veil-custodian/scripts/dev-db.sh up`) and `--features stub-authn` on veil-custodian, per
+that script's own header comment.
 
 ### veil-foundations — one Terraform module, validated against a mock provider only
 

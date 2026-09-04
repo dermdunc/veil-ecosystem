@@ -100,5 +100,134 @@ class TestRiskRegisterParity(unittest.TestCase):
         self.assertTrue(only_in_yaml or only_in_md)
 
 
+def _good_provenance(value="x", source="probed"):
+    return {"value": value, "source": source, "observed_at": None if source == "unavailable" else "2026-01-01T00:00:00+00:00"}
+
+
+def _minimal_repo(name="veil-proxy", **overrides):
+    repo = {"name": name, "kind": "cli", "tier": "internal"}
+    for field in eco_checker.REPO_PROVENANCE_FIELDS:
+        repo[field] = _good_provenance()
+    repo.update(overrides)
+    return repo
+
+
+class TestValidateDocumentShape(unittest.TestCase):
+    def _base_doc(self):
+        return {
+            "schema_version": "veil.ecostatus.v1",
+            "repos": [_minimal_repo("veil-proxy")],
+            "integrations": [],
+            "contradictions": [],
+        }
+
+    def test_clean_document_produces_no_findings(self):
+        out: list = []
+        eco_checker.validate_document_shape(self._base_doc(), {"veil-proxy"}, out)
+        self.assertEqual(out, [])
+
+    def test_flags_wrong_schema_version(self):
+        doc = self._base_doc()
+        doc["schema_version"] = "wrong"
+        out: list = []
+        eco_checker.validate_document_shape(doc, {"veil-proxy"}, out)
+        self.assertTrue(any("schema_version" in c["message"] for c in out))
+
+    def test_flags_repo_set_mismatch(self):
+        out: list = []
+        eco_checker.validate_document_shape(self._base_doc(), {"veil-proxy", "veil-enrol"}, out)
+        self.assertTrue(any("do not match" in c["message"] for c in out))
+
+    def test_flags_bad_kind_enum(self):
+        doc = self._base_doc()
+        doc["repos"][0]["kind"] = "not-a-real-kind"
+        out: list = []
+        eco_checker.validate_document_shape(doc, {"veil-proxy"}, out)
+        self.assertTrue(any("kind enum" in c["message"] for c in out))
+
+    def test_flags_source_and_observed_at_disagreeing(self):
+        # source says unavailable but observed_at is non-null -- the exact
+        # invariant the schema's own comment claims and nothing checked before.
+        doc = self._base_doc()
+        doc["repos"][0]["local_head"] = {"value": None, "source": "unavailable", "observed_at": "2026-01-01T00:00:00+00:00"}
+        out: list = []
+        eco_checker.validate_document_shape(doc, {"veil-proxy"}, out)
+        self.assertTrue(any("unavailable must mean" in c["message"] for c in out))
+
+    def test_flags_malformed_status_enum_on_an_integration(self):
+        doc = self._base_doc()
+        doc["integrations"] = [{"from": "a", "to": "b", "status_enum": "not_real"}]
+        out: list = []
+        eco_checker.validate_document_shape(doc, {"veil-proxy"}, out)
+        self.assertTrue(any("status_enum" in c["message"] for c in out))
+
+    def test_flags_bad_contradiction_severity(self):
+        doc = self._base_doc()
+        doc["contradictions"] = [{"rule": "x", "message": "y", "severity": "critical"}]
+        out: list = []
+        eco_checker.validate_document_shape(doc, {"veil-proxy"}, out)
+        self.assertTrue(any("severity=" in c["message"] for c in out))
+
+
+class TestApplyDevE2eVerification(unittest.TestCase):
+    def _repos_and_row(self, tmp_path):
+        repos = [{"name": "veil-enrol", "local_path": str(tmp_path)}]
+        row = {"from": "veil-enrol", "to": "veil-custodian", "verification": {"value": "hand-asserted"}}
+        return repos, [row]
+
+    def test_no_result_file_leaves_verification_untouched(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repos, integrations = self._repos_and_row(Path(tmp))
+            out: list = []
+            eco_checker.apply_dev_e2e_verification(repos, integrations, out)
+            self.assertEqual(integrations[0]["verification"]["value"], "hand-asserted")
+            self.assertEqual(out, [])
+
+    def test_passed_result_flips_to_probed(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            result_path = tmp_path / eco_checker.DEV_E2E_RESULT_RELATIVE_PATH
+            result_path.parent.mkdir(parents=True)
+            result_path.write_text('{"status": "passed", "finished_at": "2026-01-01T00:00:00Z"}')
+            repos, integrations = self._repos_and_row(tmp_path)
+            out: list = []
+            eco_checker.apply_dev_e2e_verification(repos, integrations, out)
+            self.assertEqual(integrations[0]["verification"]["value"], "probed")
+            self.assertEqual(integrations[0]["verification"]["observed_at"], "2026-01-01T00:00:00Z")
+            self.assertEqual(out, [])
+
+    def test_failed_result_produces_a_warning_and_does_not_flip(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            result_path = tmp_path / eco_checker.DEV_E2E_RESULT_RELATIVE_PATH
+            result_path.parent.mkdir(parents=True)
+            result_path.write_text('{"status": "failed", "finished_at": "2026-01-01T00:00:00Z", "exit_code": 1}')
+            repos, integrations = self._repos_and_row(tmp_path)
+            out: list = []
+            eco_checker.apply_dev_e2e_verification(repos, integrations, out)
+            self.assertEqual(integrations[0]["verification"]["value"], "hand-asserted")
+            self.assertEqual(len(out), 1)
+            self.assertEqual(out[0]["severity"], "warning")
+
+    def test_malformed_json_produces_a_warning(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            result_path = tmp_path / eco_checker.DEV_E2E_RESULT_RELATIVE_PATH
+            result_path.parent.mkdir(parents=True)
+            result_path.write_text("not json")
+            repos, integrations = self._repos_and_row(tmp_path)
+            out: list = []
+            eco_checker.apply_dev_e2e_verification(repos, integrations, out)
+            self.assertEqual(len(out), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
