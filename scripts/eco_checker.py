@@ -294,6 +294,143 @@ def parse_integration_table(out: list[dict]) -> list[dict]:
     return integrations
 
 
+DEV_E2E_RESULT_RELATIVE_PATH = Path(".project-setup") / "last-runs" / "dev-e2e.json"
+
+
+def apply_dev_e2e_verification(repos: list[dict], integrations: list[dict], out: list[dict]) -> None:
+    """veil-enrol/scripts/dev-e2e.sh persists a last-run result (added
+    2026-09-04, see veil-enrol PR #3) specifically so this can flip the
+    veil-enrol -> veil-custodian row from verification: hand-asserted to
+    probed -- the first integration row in the family for which that flip
+    is actually possible, per docs/interactive-plan.md section 4's design.
+    """
+    veil_enrol = next((r for r in repos if r["name"] == "veil-enrol"), None)
+    row = next((i for i in integrations if i["from"] == "veil-enrol" and i["to"] == "veil-custodian"), None)
+    if veil_enrol is None or row is None:
+        return
+    result_path = Path(veil_enrol["local_path"]) / DEV_E2E_RESULT_RELATIVE_PATH
+    if not result_path.is_file():
+        return
+    try:
+        result = json.loads(result_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        add_contradiction(
+            out,
+            "dev_e2e_result",
+            f"{result_path} exists but is not valid JSON -- could not use it to verify the "
+            "veil-enrol -> veil-custodian integration row.",
+            severity="warning",
+        )
+        return
+    status = result.get("status")
+    if status == "passed":
+        row["verification"] = {
+            "value": "probed",
+            "source": "probed",
+            "observed_at": result.get("finished_at"),
+        }
+    elif status == "failed":
+        add_contradiction(
+            out,
+            "dev_e2e_result",
+            f"veil-enrol's last dev-e2e.sh run FAILED (finished {result.get('finished_at')!r}, "
+            f"exit_code={result.get('exit_code')!r}) -- the veil-enrol -> veil-custodian "
+            "integration is not currently proven, despite architecture.md's own claim.",
+            severity="warning",
+        )
+    else:
+        add_contradiction(
+            out,
+            "dev_e2e_result",
+            f"{result_path} has an unrecognised status {status!r} -- expected 'passed' or 'failed'.",
+            severity="warning",
+        )
+
+
+PROVENANCE_SOURCE_ENUM = {"probed", "machine-derived", "hand-asserted", "unavailable"}
+REPO_KIND_ENUM = {"service", "cli", "library", "terraform-module", "docs"}
+TIER_ENUM = {"public", "internal", "local"}
+REPO_PROVENANCE_FIELDS = (
+    "privacy_boundary",
+    "github_visibility",
+    "github_current_name",
+    "local_head",
+    "local_branch",
+    "dirty",
+    "remote_head",
+    "ahead",
+    "behind",
+    "has_ci_workflow",
+    "has_ci_proposed",
+)
+
+
+def _validate_provenance_field(out: list[dict], where: str, field: dict) -> None:
+    if not isinstance(field, dict) or {"value", "source", "observed_at"} - field.keys():
+        add_contradiction(out, "schema_shape", f"{where}: not a well-formed provenance object: {field!r}")
+        return
+    if field["source"] not in PROVENANCE_SOURCE_ENUM:
+        add_contradiction(out, "schema_shape", f"{where}: source={field['source']!r} is not in the provenance enum.")
+    # By construction (eco_collector.unavailable() vs. provenance()), a field
+    # is unavailable if and only if observed_at is None -- this is the one
+    # invariant hand-written here specifically because the schema's own
+    # comment claims it and nothing had ever checked it was actually true.
+    is_unavailable = field["source"] == "unavailable"
+    has_no_timestamp = field["observed_at"] is None
+    if is_unavailable != has_no_timestamp:
+        add_contradiction(
+            out,
+            "schema_shape",
+            f"{where}: source={field['source']!r} but observed_at={field['observed_at']!r} -- "
+            "unavailable must mean observed_at is null, and nothing else may leave it null.",
+        )
+
+
+def validate_document_shape(doc: dict, expected_repo_names: set[str], out: list[dict]) -> None:
+    """Hand-written structural check against schemas/veil.ecostatus.v1.schema.json,
+    since `jsonschema` isn't a stdlib module and the schema itself is currently
+    looser than what the collector actually emits (only name/kind/tier are
+    schema-required on a repo, but the collector always emits far more) --
+    a real `jsonschema` validation today would pass almost anything. This
+    checks the fields that actually matter: exact schema_version, the real
+    six-repo set, every provenance object's shape/enum/null-iff-unavailable
+    invariant, and the enums on kind/tier/status_enum/severity.
+    """
+    if doc.get("schema_version") != eco_collector.SCHEMA_VERSION:
+        add_contradiction(out, "schema_shape", f"schema_version={doc.get('schema_version')!r}, expected {eco_collector.SCHEMA_VERSION!r}.")
+
+    repo_names = {r.get("name") for r in doc.get("repos", [])}
+    if repo_names != expected_repo_names:
+        add_contradiction(
+            out,
+            "schema_shape",
+            f"repos[] names {sorted(repo_names)} do not match the configured component set "
+            f"{sorted(expected_repo_names)}.",
+        )
+
+    for repo in doc.get("repos", []):
+        name = repo.get("name", "<unnamed>")
+        if repo.get("kind") not in REPO_KIND_ENUM:
+            add_contradiction(out, "schema_shape", f"{name}: kind={repo.get('kind')!r} is not in the kind enum.")
+        if repo.get("tier") not in TIER_ENUM:
+            add_contradiction(out, "schema_shape", f"{name}: tier={repo.get('tier')!r} is not in the tier enum.")
+        for field_name in REPO_PROVENANCE_FIELDS:
+            if field_name in repo:
+                _validate_provenance_field(out, f"{name}.{field_name}", repo[field_name])
+
+    for integration in doc.get("integrations", []):
+        edge = f"{integration.get('from')} -> {integration.get('to')}"
+        if integration.get("status_enum") not in STATUS_ENUM_PHRASES.values():
+            add_contradiction(out, "schema_shape", f"{edge}: status_enum={integration.get('status_enum')!r} is not in the enum.")
+
+    # Snapshot: at the real call site, `out` IS `doc["contradictions"]` (see
+    # check() below) -- iterating the live list while appending to it would
+    # also validate findings this function just added about itself.
+    for contradiction in list(doc.get("contradictions", [])):
+        if contradiction.get("severity") not in {"error", "warning"}:
+            add_contradiction(out, "schema_shape", f"a contradiction has severity={contradiction.get('severity')!r}, not error/warning.")
+
+
 def check(config_path: Path, now: str | None = None) -> dict:
     doc = eco_collector.collect(config_path, now=now)
     gh_ok = eco_collector.gh_available()
@@ -305,7 +442,10 @@ def check(config_path: Path, now: str | None = None) -> dict:
     check_links(contradictions)
     check_demo_pin(doc["repos"], contradictions)
     doc["integrations"] = parse_integration_table(contradictions)
+    apply_dev_e2e_verification(doc["repos"], doc["integrations"], contradictions)
     doc["contradictions"] = contradictions
+    expected_names = {c["name"] for c in eco_collector.load_config(config_path)["components"]}
+    validate_document_shape(doc, expected_names, contradictions)
     return doc
 
 

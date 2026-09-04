@@ -150,48 +150,49 @@ section for the full account of what each review pass got right/wrong.
       flagged, plus two dead/unimplemented pieces (`unavailable()`'s unused parameter,
       `$VEIL_ECO_COMPONENTS_FILE` documented but not read).
 
-**Deliberately deferred, not built in this PR** (disclosed, not silently dropped):
+**Deliberately deferred as of the prior PR — status as of this update:**
 
-- [ ] **CI for veil-ecosystem itself.** `.github/workflows/` is a protected path under this
-      machine's git-guardrail hook — same class as `Cargo.toml` in the Rust repos. Draft
-      content for a human to commit via `HEKTON_ALLOW_PROTECTED=1` (matching veil-custodian's
-      own precedent), once approved:
-      ```yaml
-      # .github/workflows/ci.yml
-      name: CI
-      on: [push, pull_request]
-      jobs:
-        verify:
-          runs-on: ubuntu-latest
-          steps:
-            - uses: actions/checkout@v4
-            - run: bash scripts/verify-project.sh
-      ```
-      Note this will only exercise the file-existence checks and the eco checker's
-      non-git-dependent rules in CI (no sibling checkouts, no `gh` auth) — full coverage
-      still needs to run locally, same as veil-custodian's own DB-dependent test split.
-- [ ] veil-demo's `.hekton/project.yaml` annotation (a comment recording that the repo is
-      deliberately internal while shipping a public deployment) — a different repo's file;
-      deliberately not bundled into this cross-repo-touching PR.
-- [ ] veil-foundations' `privacy_boundary` vs. actual GitHub visibility mismatch — still
-      genuinely unresolved 11+ days after first found; needs a human call on which one is
-      wrong, then a fix in that repo.
-- [ ] veil-observatory's `ci-proposed/README.md` stale "no GitHub remote at all yet" claim —
-      a different repo's file.
-- [ ] `veil-enrol/scripts/dev-e2e.sh` doesn't persist a last-run result — needs a small
-      wrapper writing a timestamp + pass/fail JSON file before the collector can wire the
-      veil-enrol → veil-custodian integration row's `verification` from
-      hand-asserted to probed, as designed in `docs/interactive-plan.md` §4.
-- [ ] The role/credential coverage matrix (which of veil-custodian's 5 roles are held by
-      which component, which are orphaned) — deliberately not built, per a Codex finding that
-      it risks duplicating veil-custodian's own `src/bin/mutual-exclusivity-check.rs` and IAM
-      separation-of-duties design. If built later, it must be a read-only view over
-      veil-custodian's own source, never a second source of truth.
-- [ ] `credentials_held[]` schema field — deferred as under-specified (a naive collector
-      implementation could probe exactly the sensitive stores — OS keychains, credential
-      files — it should stay away from). Needs its own design pass before building.
-- [ ] JSON Schema validation of the collector's actual output against
-      `schemas/veil.ecostatus.v1.schema.json` isn't automated — `jsonschema` isn't a stdlib
-      module and this repo deliberately avoids adding a Python dependency for a docs repo.
-      Either add the dependency deliberately (a real decision, not a default) or hand-write a
-      lightweight structural check.
+- [x] ~~CI for veil-ecosystem itself~~ — done (PR #9, human-run protected-path commit, first
+      real run confirmed green before merging).
+- [x] ~~veil-demo's `.hekton/project.yaml` annotation~~ — done (veil-demo PR #13).
+- [x] ~~veil-observatory's `ci-proposed/README.md` stale "no GitHub remote at all yet"
+      claim~~ — done (veil-observatory PR #13).
+- [x] ~~`veil-enrol/scripts/dev-e2e.sh` doesn't persist a last-run result~~ — done (veil-enrol
+      PR #3: writes `.project-setup/last-runs/dev-e2e.json`, gitignored, identity-free).
+      `eco_checker.py` now reads it and flips the veil-enrol → veil-custodian integration
+      row's `verification` from hand-asserted to probed when the last run passed — the first
+      integration row in the family for which that flip is possible. Confirmed end-to-end
+      against a real run.
+- [x] ~~JSON Schema validation isn't automated~~ — done, hand-written (not `jsonschema` —
+      the schema is currently looser than what the collector emits, so a real `jsonschema`
+      validation today would pass almost anything; `eco_checker.validate_document_shape`
+      checks `schema_version`, the real 6-repo set, every provenance object's shape/enum/
+      null-iff-unavailable invariant, and the `kind`/`tier`/`status_enum`/severity enums).
+- [ ] veil-foundations' `privacy_boundary` vs. actual GitHub visibility mismatch — **still
+      genuinely unresolved.** A Codex consult recommends flipping the GitHub repo to public
+      (not the metadata) — its `.hekton/project.yaml` is internally consistent with
+      public-capable source (no `local_repo_path`/`mind_palace_path` in-repo, those live in
+      the private sibling), and `docs/session-log.md` there already records a human-decision
+      point on this exact question. **Not acted on** — flipping a private repo to public is
+      an irreversible-ish, security-relevant decision this agent should not make
+      unilaterally; surfaced to the user directly instead of silently implementing.
+- [ ] The role/credential coverage matrix — still deferred, Codex consult agrees: real risk
+      of duplicating veil-custodian's own `src/bin/mutual-exclusivity-check.rs` and IAM
+      separation-of-duties design. Cheap safe scope instead, done in this round: fixed the
+      stale role-count comment at the source (veil-custodian PR #22) rather than building a
+      second, ecosystem-side view of the same fact.
+- [ ] `credentials_held[]` schema field — still deferred, Codex consult agrees: no sourcing
+      decision has been made, and the wrong one invites probing keychains/credential files.
+
+**Additional findings from the same Codex consult, fixed in this round (none were on the
+original list):**
+
+- [x] `README.md` said "Documentation only — no code, no CI" — stale since Phase 0 shipped
+      real code and CI.
+- [x] `docs/setup.md` cloned `dermdunc/veilgremlin` (renamed to `veil-proxy`) and claimed the
+      demo was "already live" (down since 2026-08-30, RISK-0006). Also added the missing
+      veil-enrol section and corrected a stale "nothing calls veil-custodian's API" claim.
+- [x] `docs/architecture.md`'s Integration Status section claimed veil-enrol → veil-custodian
+      was "described here alongside the original five, not folded silently into an existing
+      row" — false; it replaced the row that used to read `veil-proxy → veil-custodian`. The
+      table has five rows, not six, and never did.

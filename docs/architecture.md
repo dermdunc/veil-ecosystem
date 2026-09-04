@@ -316,15 +316,20 @@ transmitted yet, regardless of construction path.
 ## Integration Status
 
 Five cross-repo integrations were originally called for by the design (per the 2026-08-22
-audit's own named list); a sixth — veil-enrol → veil-custodian — was added to the family
-2026-09-04 and is described here alongside the original five, not folded silently into an
-existing row. As of 2026-08-30, re-verified again 2026-09-04 for this update only against the
-two repos it touches (see [Keeping this current](#keeping-this-current)): **one is wired and
-demonstrated in production terms (merged, cross-process, though currently unpushed to
-GitHub); one more is now merged and locally e2e-proven but has no automated caller yet
-(veil-enrol → veil-custodian, new this update); the remaining four are still designed-but-uncalled,
-demonstrated-but-currently-down, or entirely missing** — not a clean real/unreal split, see
-the table for each one's actual status.
+audit's own named list). The table below still has five rows, not six — **correction
+2026-09-04, same-day self-check**: an earlier version of this paragraph said veil-enrol →
+veil-custodian was "described here alongside the original five, not folded silently into an
+existing row," which overclaimed what actually happened. It replaced the row that used to
+read `veil-proxy → veil-custodian` (itself an architecturally-impossible edge under
+ADR-D/ADR-N, corrected the same day) rather than being added as a genuine sixth row — the
+row count never changed, only which edge occupies the fifth one. As of 2026-08-30, re-verified
+again 2026-09-04 for this update only against the two repos it touches (see
+[Keeping this current](#keeping-this-current)): **one is wired and demonstrated in production
+terms (merged, cross-process, pushed to GitHub — see the table row for the pushed-status
+correction); one more is now merged and locally e2e-proven but has no automated caller yet
+(veil-enrol → veil-custodian, new this update); the remaining three are still
+designed-but-uncalled, demonstrated-but-currently-down, or entirely missing** — not a clean
+real/unreal split, see the table for each one's actual status.
 
 **Correction (2026-09-04):** the diagram and table below previously showed
 `veil-proxy → veil-custodian ("POST /devices enrolment")`. That edge was never
