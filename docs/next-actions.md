@@ -209,3 +209,32 @@ original list):**
       cross-repo intent still living in individual repos' own `next-actions.md`. Worth a
       deliberate decision later on whether that's fine as-is or needs consolidating — not
       decided today, just named so it doesn't get silently assumed as solved.
+
+## Session Update: 2026-09-04 — cross-repo dependency registry
+
+- [x] Built `.hekton/cross-repo-deps.yaml` + `docs/cross-repo-deps.md`, mirroring the existing
+      `risk-register.yaml`/`risks.md` pattern (stable `XREPO-00N` IDs, machine-readable +
+      human-readable pair). Populated with 5 entries found by grepping all six repos'
+      `next-actions.md`/`decisions.md` for cross-repo language: `XREPO-001` (veil-observatory
+      has never called veil-custodian), `XREPO-002` (no sandbox AWS account),
+      `XREPO-003` (veil-custodian/veil-enrol signing-key renewal endpoint, named independently
+      by both sides), `XREPO-004` (veilgremlin's raw r\|\|s signature-encoding sign-off ask —
+      recorded in veil-custodian's backlog, absent from veil-observatory's until this round),
+      `XREPO-005` (veil-observatory/veilgremlin ADR-0014 CI-veto question).
+- [x] Extended `eco_checker.py` with `check_cross_repo_dep_ids`: YAML-vs-Markdown ID parity
+      (error), dangling `XREPO-\d+` references in any repo's `docs/next-actions.md` not present
+      in the registry (error), and registry entries referenced nowhere (warning, not error —
+      backfilling is incremental and a false-red first run would be worse than a quiet
+      warning). Full test suite (28 tests) and a live `eco_checker.py` run both pass clean —
+      0 errors, 0 warnings — after backfilling references into veil-enrol's, veil-custodian's,
+      and veil-observatory's own `next-actions.md`.
+- [x] This design replaced an earlier, simpler plan (anchor into `architecture.md`'s numbered
+      sequencing list directly) after a Codex critique found it structurally broken — see
+      `docs/decisions.md` for the full reasoning.
+- [ ] First population, not an exhaustive audit — there are almost certainly more real
+      cross-repo dependencies stated independently somewhere in six repos' worth of backlog
+      than the five caught in this pass. `docs/cross-repo-deps.md` names this explicitly.
+- [ ] The broader "no single cross-repo *plan* document" question (immediately above, carried
+      from 2026-09-04's artifact-retirement entry) is narrower now but not closed: the registry
+      solves *dependencies between repos*, not the fuller sequencing/prioritization narrative,
+      which still lives in `architecture.md`'s "Sequencing to close them" section.

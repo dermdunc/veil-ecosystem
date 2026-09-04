@@ -134,6 +134,74 @@ def check_risk_register_parity(out: list[dict]) -> None:
         )
 
 
+XREPO_ID_PATTERN = re.compile(r"\bXREPO-\d+\b")
+
+
+def _find_registry_ids() -> set[str]:
+    registry_path = REPO_ROOT / ".hekton" / "cross-repo-deps.yaml"
+    if not registry_path.is_file():
+        return set()
+    return set(re.findall(r"id:\s*(XREPO-\d+)", registry_path.read_text()))
+
+
+def check_cross_repo_dep_ids(repos: list[dict], out: list[dict]) -> None:
+    """Mirrors check_risk_register_parity's pattern for a different stable-ID
+    registry: `.hekton/cross-repo-deps.yaml` (machine-readable) vs.
+    `docs/cross-repo-deps.md` (human-readable) vs. every repo's own
+    `next-actions.md`, which is expected to *reference* an ID rather than
+    restate the dependency independently. Only the "dangling reference"
+    direction is an error -- a referenced ID that doesn't exist anywhere is
+    unambiguously a typo or a stale reference. The reverse (a registry entry
+    nothing references yet) is a warning, not an error: this registry was
+    seeded by a one-time grep, not fully backfilled everywhere on day one,
+    and treating an unreferenced-but-real entry as a failure would make the
+    first honest run of this check red for reasons that aren't bugs.
+    """
+    registry_ids = _find_registry_ids()
+    md_path = REPO_ROOT / "docs" / "cross-repo-deps.md"
+    md_ids = set(XREPO_ID_PATTERN.findall(md_path.read_text())) if md_path.is_file() else set()
+    only_in_yaml = registry_ids - md_ids
+    only_in_md = md_ids - registry_ids
+    if only_in_yaml or only_in_md:
+        add_contradiction(
+            out,
+            "cross_repo_dep_parity",
+            f".hekton/cross-repo-deps.yaml and docs/cross-repo-deps.md disagree on which "
+            f"dependencies exist -- only in YAML: {sorted(only_in_yaml) or 'none'}; only in "
+            f"Markdown: {sorted(only_in_md) or 'none'}.",
+            severity="error",
+        )
+
+    referenced_ids: set[str] = set()
+    sources = [("veil-ecosystem", REPO_ROOT)] + [(r["name"], Path(r["local_path"])) for r in repos]
+    for repo_name, repo_path in sources:
+        na_path = repo_path / "docs" / "next-actions.md"
+        if not na_path.is_file():
+            continue
+        for match in XREPO_ID_PATTERN.findall(na_path.read_text()):
+            referenced_ids.add(match)
+            if match not in registry_ids:
+                add_contradiction(
+                    out,
+                    "cross_repo_dep_dangling_reference",
+                    f"{repo_name}'s docs/next-actions.md references {match!r}, which does not "
+                    "exist in .hekton/cross-repo-deps.yaml -- typo, or a stale reference to a "
+                    "removed entry.",
+                    severity="error",
+                )
+
+    unreferenced = registry_ids - referenced_ids
+    if unreferenced:
+        add_contradiction(
+            out,
+            "cross_repo_dep_unreferenced",
+            f"{sorted(unreferenced)} exist in the registry but are not referenced from any "
+            "repo's docs/next-actions.md yet -- not necessarily wrong (this registry was "
+            "seeded by a one-time grep, backfilling is incremental), but worth checking.",
+            severity="warning",
+        )
+
+
 def extract_markdown_links(text: str) -> list[str]:
     return re.findall(r"\[[^\]]*\]\(([^)]+)\)", text)
 
@@ -439,6 +507,7 @@ def check(config_path: Path, now: str | None = None) -> dict:
     check_privacy_vs_visibility(doc["repos"], contradictions)
     check_repo_name_vs_github(doc["repos"], contradictions)
     check_risk_register_parity(contradictions)
+    check_cross_repo_dep_ids(doc["repos"], contradictions)
     check_links(contradictions)
     check_demo_pin(doc["repos"], contradictions)
     doc["integrations"] = parse_integration_table(contradictions)
