@@ -28,6 +28,7 @@ related_projects:
   - veilgremlin
   - veil-foundations
   - veil-custodian
+  - veil-enrol
   - veil-observatory
   - veil-demo
 
@@ -67,6 +68,7 @@ architecture:
     - veilgremlin
     - veil-foundations
     - veil-custodian
+    - veil-enrol
     - veil-observatory
     - veil-demo
   consumes: []
@@ -78,5 +80,5 @@ architecture:
   risks: []
   owner: hekton
 notes:
-  - Master architecture repo for the VeilGremlin product family: describes the trust boundaries, data flows, and integration seams across veil-proxy, veil-foundations, veil-custodian, veil-observatory, and veil-demo, and documents how to stand up each component today.
+  - Master architecture repo for the VeilGremlin product family: describes the trust boundaries, data flows, and integration seams across veil-proxy, veil-foundations, veil-custodian, veil-enrol, veil-observatory, and veil-demo, and documents how to stand up each component today.
 
