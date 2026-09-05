@@ -102,10 +102,23 @@ deps:
     repos: [veil-observatory, veilgremlin]
     status: open
     raised_date: 2026-08-23
-    reviewed_date: 2026-09-04
+    reviewed_date: 2026-09-05
     detail: >
       Per veil-observatory's own next-actions.md: only ADR-0012's test is currently named as a
       blocking gate; extending that to ADR-0014 "needs a cross-repo decision, not a unilateral
       one." Ratified in veil-proxy/veilgremlin's telemetry-receipt-reconciliation-plan.md §4a
-      for the existing gate; not yet decided for this extension.
+      for the existing gate; not yet decided for this extension. **Codex consult, 2026-09-05:
+      conditional no.** Recommendation: do not give the whole `tests/pipeline/test_pipeline.py`
+      suite the same formal veto ADR-0012's fuzz test has -- that suite covers far more than
+      schema-compatibility (raw access gating, quarantine behavior, evidence references,
+      detector replay, storage conflicts), so a failure could block a veil-proxy PR for
+      reasons unrelated to the actual producer/consumer contract, forcing the producer repo to
+      debug broad consumer behavior. Instead: ratify a narrower, purpose-built
+      "correlation-contract" gate (a small marked test subset or new module) covering only the
+      specific facts that can break ADR-0014 -- exact veil_trace_id linkage path exists,
+      Tier-1 attach/no-attach behavior, Tier-2 never attaches alone, duplicate-trace-ID
+      fail-closed behavior, account/region mismatch non-attachment, deterministic event-ID
+      replay, and bedrock-mantle's explicit uncorrelatable status -- and make ONLY that gate
+      merge-blocking. Not yet decided by a human; this is Codex's recommendation, not a
+      ratified decision.
     links: []

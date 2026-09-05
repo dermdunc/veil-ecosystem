@@ -21,7 +21,7 @@ exactly the drift that produced this registry (see `docs/decisions.md`,
 | XREPO-002 | veil-foundations, veil-observatory | Open | No sandbox AWS account exists — blocks veil-foundations' real-world validation and veil-observatory's real evidence ingestion. |
 | XREPO-003 | veil-custodian, veil-enrol | Open | veil-custodian has no signing-key renewal endpoint; veil-enrol has no subcommand to call one that doesn't exist. Both repos independently named the other half of this gap, unlinked, until today. |
 | XREPO-004 | veilgremlin, veil-custodian, veil-observatory | Closed 2026-09-05 | veilgremlin's raw `r\|\|s` (not DER) signature-encoding decision. veil-demo's 2026-09-05 ECDSA signing proof confirmed the encoding is sound and independently verifiable; human sign-off given on that evidence. Real ECDSA verification in veil-observatory is separate, still-unbuilt work this closure doesn't schedule. |
-| XREPO-005 | veil-observatory, veilgremlin | Open | Whether ADR-0014's correlation/determinism suite should join the existing cross-repo CI veto ADR-0012's test already has — named in veil-observatory's own backlog as needing a joint decision, not yet made. |
+| XREPO-005 | veil-observatory, veilgremlin | Open | Whether ADR-0014's correlation/determinism suite should join the existing cross-repo CI veto ADR-0012's test already has. Codex consult (2026-09-05): conditional no — don't veto on the whole test suite, ratify a narrower purpose-built correlation-contract gate instead. Not yet decided by a human. |
 
 ## How an entry gets here
 

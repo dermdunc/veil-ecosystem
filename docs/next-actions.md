@@ -303,5 +303,8 @@ record of a question that has actually been answered:
       See `.hekton/cross-repo-deps.yaml` (now `status: closed`) and `docs/decisions.md` for
       the record. Corresponding entries updated in veil-custodian's, veil-observatory's, and
       veilgremlin's own `next-actions.md`.
-- [ ] **`XREPO-005`** (ADR-0014 CI-veto question): a Codex consult was requested for
-      recommendation + pros/cons before deciding — not yet run as of this entry.
+- [ ] **`XREPO-005`** (ADR-0014 CI-veto question): Codex consult run 2026-09-05 —
+      recommendation is a conditional no (don't veto on the whole `test_pipeline.py` suite;
+      ratify a narrower purpose-built correlation-contract gate instead). See the registry
+      entry for the full reasoning. Not yet decided by a human — this is a recommendation
+      to weigh, not a ratified answer.
