@@ -488,9 +488,15 @@ dependency order in `veilgremlin/docs/architecture/product-family.md` §9:
    `veil.edge_event.v1`) is already encoded in veil-proxy's `telemetry::SchemaVersion` enum.
    What remains of this step is narrower than "freeze a contract" — it's "finish implementing
    the already-agreed one."
-3. **Build the emitter, retire the fixtures.** The `TelemetryEvent` type and its target schema
-   both exist — build the network sender in veil-proxy that actually transmits one; switch
-   veil-observatory's ingestion off synthetic fixtures onto real receipts.
+3. ~~Build the emitter, retire the fixtures.~~ — **done, corrected 2026-09-05 (found stale
+   while updating this document for an unrelated reason — this step itself was never
+   revisited after the emitter actually shipped).** The network sender exists and is wired:
+   `veil-proxy`'s `TelemetryCountingAuditSink::write` calls the signer and transmits
+   `veil.edge_event.v1` over real HTTP on a successful conversion (2026-08-29, see
+   Integration Status above). `veil-observatory`'s own ingestion is still driven by
+   synthetic fixtures for its correlation/detector test suite — that half of this step
+   (retiring the fixtures) is a distinct, still-open piece, not closed by the emitter
+   existing.
 4. **Wire one real observatory→custodian call.** **Partially superseded 2026-09-04: the
    *enrolment* side of "wire one real custodian call" is now done, by veil-enrol, not by
    this step** — but that closes a different grant (`EnrolmentAuthority`) than the one this
@@ -503,10 +509,12 @@ dependency order in `veilgremlin/docs/architecture/product-family.md` §9:
    then extend to invocation logging. (The Guardrail-mandatory defect an earlier draft of this
    doc flagged here was already fixed via ADR-010 on 2026-08-23 — nothing left to fix before
    this step.)
-6. **Build the signer.** veil-observatory's receipt *verifier* already exists and is real
-   (corrected 2026-08-24) — what's missing is the signer on veil-proxy's end. Building it once
-   the wire format is stable (step 2, already largely settled) avoids signing a schema that's
-   still moving.
+6. ~~Build the signer.~~ — **done.** HMAC-SHA256 signing shipped 2026-08-29 alongside the
+   emitter (step 3, above). Real ECDSA-P256 signing — using an actual ADR-S-issued
+   certificate — was proven end-to-end 2026-09-05 (see the Integration Status section's
+   2026-09-05 update and `XREPO-004`, now closed). What remains is not building a signer;
+   it's `veil-observatory` building a real ECDSA *verification* path to match — a separate,
+   still-unscheduled piece of work this step never covered in the first place.
 7. ~~Write the missing architecture document~~ — **done: this document.** Keeping it current is
    now the open item; see below.
 
