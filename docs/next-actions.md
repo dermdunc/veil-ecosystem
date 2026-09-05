@@ -278,3 +278,10 @@ What's genuinely unresolved, not just unbuilt:
 - **Who decides this.** Unlike the technical follow-ups above, this is a product/adoption
   decision about the Hekton project's own operating practice, not a code-level fix any of the
   six component repos can make unilaterally.
+
+**Decided (2026-09-05): deferred, explicitly, not left ambiguous.** Human decision: don't
+scope or start Hekton dogfooding work until the ecosystem is working end to end first —
+revisit this question once that's true, and figure out what Hekton-specific work (policy
+tuning, a real credential/telemetry story, a chosen first scope) is actually needed then,
+rather than guessing at it now against a still-moving target. This entry stays open as a
+question to come back to, not as active backlog.
