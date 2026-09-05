@@ -606,6 +606,47 @@ component section and the Integration Status table:
   operator still runs it by hand. See `docs/next-actions.md` for the still-unclaimed
   `RevocationAuthority`/`ResolutionAuthority`/`AuditRead` follow-up.
 
+## 2026-09-05: mTLS ClientAuth EKU retrofit merged; a real ECDSA signing proof closes one more hop
+
+Two follow-ups landed, both run as self-paced overnight loops, both DDD-reviewed
+(single-model + Codex) before merging:
+
+- **veil-custodian PR #24, merged.** The mTLS certificate profile's own missing `ClientAuth`
+  EKU — named as a real, separate gap by ADR-S's own 2026-08-31 entry and deliberately kept
+  out of that PR's scope — is retrofitted. `sign_device_csr` now assigns exactly `ClientAuth`
+  instead of no EKU at all; the ADR-S signing profile (`sign_signing_key_csr`) is unaffected
+  and still carries only its own placeholder OID. This closes the second and last of the two
+  certificate-profile gaps ADR-S's decisions.md entry named at the time.
+- **veil-demo PR #15, merged.** Extends the trust-chain proof one hop past where it stopped
+  on 2026-09-04 (a certificate issued and its profile checked, never actually used to sign
+  anything): a real veilgremlin process, given that real custodian-issued certificate,
+  produces a real ECDSA-P256-signed `veil.edge_event.v1` through its actual production
+  auto-detect code path, transmitted over real HTTP to a real local veil-observatory, and
+  independently verified by hand (a from-scratch DER encoder plus openssl, with a `--tamper`
+  negative control proving the verifier can actually fail). **What this does and does not
+  prove, stated as plainly here as on the page itself:** it proves the mechanism — a real
+  credential from a real issuer produces a real, independently-verifiable signature via
+  veilgremlin's real code, not a mock. It does not decide `XREPO-004` (veilgremlin's raw
+  `r\|\|s` vs. DER signature-encoding choice, still needing sign-off from veil-custodian and
+  veil-observatory) — that sign-off is still not given, and this proof is evidence a reviewer
+  of that question could use, not a substitute for making it. veil-observatory's real,
+  current behavior when it receives this record is recorded honestly rather than worked
+  around: accepted unverified (202) when unconfigured for verification; explicitly and
+  safely refused (401, naming the exact algorithm and reason) when configured to verify
+  HMAC. Neither veilgremlin's nor veil-observatory's own source changed to build this proof.
+- Two real, load-bearing facts surfaced while building the proof, worth carrying forward
+  for whoever next touches this seam: `AuditEvent::DemaskDecision` telemetry only ever fires
+  on a denial, never an allowed demask (so any future automated caller of this path needs a
+  hard-deny destination to actually produce a signed record, not an allowed one); and
+  veil-observatory's real ingest route is `/ingest`, not `/v1/edge-events` — an assumption
+  this document itself never stated but which existed uncorrected in working notes until
+  this session checked the real source.
+- The Integration Status table above is not changed by this update: `veil-enrol →
+  veil-custodian`'s row already covers the certificate issuance this proof depends on, and
+  the new veilgremlin-signs-and-transmits capability is a demonstration script, not an
+  automated production caller — the same "built, locally proven, no automated caller yet"
+  posture the veil-enrol row itself already states, not a new row.
+
 ## Keeping this current
 
 **This document was itself stale on the day it was written, and that's the lesson to carry

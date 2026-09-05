@@ -238,3 +238,43 @@ original list):**
       from 2026-09-04's artifact-retirement entry) is narrower now but not closed: the registry
       solves *dependencies between repos*, not the fuller sequencing/prioritization narrative,
       which still lives in `architecture.md`'s "Sequencing to close them" section.
+
+## Session Update: 2026-09-05 — mTLS EKU retrofit and the ECDSA signing proof, both merged
+
+- [x] veil-custodian PR #24 merged: mTLS `ClientAuth` EKU retrofit. See
+      `docs/architecture.md`'s new 2026-09-05 section for the full record.
+- [x] veil-demo PR #15 merged: real end-to-end proof that a veilgremlin process can sign a
+      real `veil.edge_event.v1` with a real ADR-S-issued certificate, independently verified.
+      Does not decide `XREPO-004` (still open) — see the registry entry's 2026-09-05 update
+      for the evidence this proof adds to that still-unmade decision.
+- [x] `eco.sh status` re-run clean after both merges: 0 errors, 0 warnings, all six repos at
+      their real current HEADs.
+
+## Open question: when does Hekton itself start using veilgremlin, not just build it?
+
+Named here deliberately, not decided — this is a real question with no owner yet, not a
+plan. `veilgremlin`'s own CLI already ships the exact mechanism this would use:
+`vg run -- <cmd>` ("wrap a command, typically `claude`, with VeilGremlin's masking hooks"),
+built and tested, sitting unused outside its own demo/eval corpus. Hekton's own day-to-day
+work — this session included — runs Claude Code directly, unmasked, against real repos with
+real content, the exact gap the whole product family exists to close.
+
+What's genuinely unresolved, not just unbuilt:
+- **Policy fit.** The shipped default policy (`DEFAULT_GLOBAL_POLICY`) is tuned for the demo
+  corpus's entity classes; nobody has checked what it would actually flag (or miss) against a
+  real Hekton repo's real content — a different exercise from veilgremlin's own eval harness,
+  which scores against its own seeded corpus, not Hekton's.
+- **Telemetry, if any, is a bigger decision here than in any demo.** The ADR-S signing chain
+  now works end-to-end for a throwaway local credential (2026-09-05 proof, above) — but
+  enabling telemetry on *real* Hekton usage means a real per-device signing credential from a
+  real, persistently-running veil-custodian instance, not a local dev-stub-authn one spun up
+  and torn down for one script run. That's a materially bigger operational commitment (ADR-L's
+  deferred KMS/HSM-backed CA key custody becomes load-bearing the moment a real instance runs
+  continuously) than anything built so far, and `XREPO-004`'s sign-off would need to actually
+  be given first if the signed telemetry were to go anywhere real.
+- **Scope of the first attempt.** Wrapping one low-stakes local workflow (a single repo, a
+  single session type) is a very different, much smaller ask than wrapping Hekton's Claude
+  Code usage broadly — no one has picked which.
+- **Who decides this.** Unlike the technical follow-ups above, this is a product/adoption
+  decision about the Hekton project's own operating practice, not a code-level fix any of the
+  six component repos can make unilaterally.
