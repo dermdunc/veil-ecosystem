@@ -67,28 +67,32 @@ deps:
   - id: XREPO-004
     title: "veilgremlin's raw r||s (not DER) ECDSA signature-encoding decision needs sign-off from veil-custodian and veil-observatory before any real cross-repo signing happens"
     repos: [veilgremlin, veil-custodian, veil-observatory]
-    status: open
+    status: closed
     raised_date: 2026-08-31
     reviewed_date: 2026-09-05
+    closed_date: 2026-09-05
     detail: >
       ADR-S names the signing algorithm but takes no position on signature encoding.
       veilgremlin's 2026-08-31 acceptance session decided fixed-width raw r||s (64 bytes) over
       DER, because DER admits multiple valid encodings of one signature and a byte-exact
       golden vector needs exactly one -- but asks for sign-off before treating that as final.
       veil-custodian's own next-actions.md records the ask explicitly, disclosing that "the
-      sign-off itself is not this session's to give." veil-observatory's next-actions.md does
+      sign-off itself is not this session's to give." veil-observatory's next-actions.md did
       not mention this ask at all as of 2026-09-04 -- confirmed by direct search, not assumed
-      absent -- meaning this is currently a one-sided request neither addressee has actually
-      seen reflected in their own backlog. **Evidence added 2026-09-05, sign-off still not
-      given:** veil-demo's new ECDSA signing proof (`scripts/ecdsa-signing-proof.sh`) confirms
-      the raw r||s encoding is cryptographically sound and independently verifiable (a
-      from-scratch DER-wrapping verifier, including a tampered-signature negative control,
-      confirms real signatures verify and corrupted ones don't) -- this is evidence a reviewer
-      of this decision could use, not the sign-off itself. The same proof also confirms, live
-      against a real veil-observatory instance, exactly what happens today absent that
-      sign-off: an ECDSA-signed record is explicitly and safely refused (401) when
-      veil-observatory is configured to verify, naming this exact gap in its own rejection
-      message.
+      absent -- meaning this was, until closed, a one-sided request neither addressee had
+      actually seen reflected in their own backlog. Evidence added 2026-09-05: veil-demo's
+      ECDSA signing proof (`scripts/ecdsa-signing-proof.sh`) confirmed the raw r||s encoding
+      is cryptographically sound and independently verifiable (a from-scratch DER-wrapping
+      verifier, including a tampered-signature negative control, confirmed real signatures
+      verify and corrupted ones don't), and confirmed live against a real veil-observatory
+      instance exactly what happens absent sign-off: an ECDSA-signed record is explicitly and
+      safely refused (401), naming this exact gap in its own rejection message. **Closed
+      2026-09-05: human sign-off given**, on the strength of that evidence -- raw r||s is
+      accepted as veilgremlin's ECDSA wire encoding for cross-repo signing. Downstream work
+      this unblocks (veil-observatory building real ECDSA verification, e.g. via KMS Verify
+      or a native P-256 library, to replace today's explicit-refusal posture) is not itself
+      scheduled by this closure -- that remains separate, unbuilt work, now merely no longer
+      blocked on an undecided encoding question.
     links:
       - "veil-demo/docs/ecdsa-signing-proof-transcript.txt"
       - "veil-demo/static/trust-chain.html#the-signing-key-actually-used"

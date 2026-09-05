@@ -285,3 +285,23 @@ revisit this question once that's true, and figure out what Hekton-specific work
 tuning, a real credential/telemetry story, a chosen first scope) is actually needed then,
 rather than guessing at it now against a still-moving target. This entry stays open as a
 question to come back to, not as active backlog.
+
+## Session Update: 2026-09-05 — three items explicitly deferred, XREPO-004 accepted
+
+Explicit human decisions, recorded so "not yet decided" doesn't silently persist as the
+record of a question that has actually been answered:
+
+- [ ] **AWS sandbox account (`XREPO-002`): deferred.** No date attached; revisit when it
+      becomes the active blocker rather than a standing one.
+- [ ] **veil-foundations' open technical questions (Terraform version floor, CUR 2.0 cost-data
+      key, Bedrock ARN-pairing behavior): deferred — explicit sequencing choice, foundations
+      work comes last.**
+- [ ] **veil-demo's Fly.io deployment: deferred.** Human's own framing: revisit once the
+      cross-repo seams are actually complete and there's a real demo and narrative worth
+      putting back in front of people, not before.
+- [x] **`XREPO-004` (veilgremlin's raw `r\|\|s` ECDSA signature-encoding): sign-off given.**
+      See `.hekton/cross-repo-deps.yaml` (now `status: closed`) and `docs/decisions.md` for
+      the record. Corresponding entries updated in veil-custodian's, veil-observatory's, and
+      veilgremlin's own `next-actions.md`.
+- [ ] **`XREPO-005`** (ADR-0014 CI-veto question): a Codex consult was requested for
+      recommendation + pros/cons before deciding — not yet run as of this entry.
