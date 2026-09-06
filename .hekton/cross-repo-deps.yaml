@@ -117,28 +117,28 @@ deps:
   - id: XREPO-005
     title: "Should ADR-0014's correlation/determinism suite join the same cross-repo CI veto ADR-0012's raw-content fuzz test already has on a veil-proxy schema-generator PR?"
     repos: [veil-observatory, veilgremlin]
-    status: open
+    status: closed
     raised_date: 2026-08-23
-    reviewed_date: 2026-09-05
+    reviewed_date: 2026-09-06
+    closed_date: 2026-09-06
     detail: >
-      Per veil-observatory's own next-actions.md: only ADR-0012's test is currently named as a
-      blocking gate; extending that to ADR-0014 "needs a cross-repo decision, not a unilateral
-      one." Ratified in veil-proxy/veilgremlin's telemetry-receipt-reconciliation-plan.md §4a
-      for the existing gate; not yet decided for this extension. **Codex consult, 2026-09-05:
-      conditional no.** Recommendation: do not give the whole `tests/pipeline/test_pipeline.py`
-      suite the same formal veto ADR-0012's fuzz test has -- that suite covers far more than
-      schema-compatibility (raw access gating, quarantine behavior, evidence references,
-      detector replay, storage conflicts), so a failure could block a veil-proxy PR for
-      reasons unrelated to the actual producer/consumer contract, forcing the producer repo to
-      debug broad consumer behavior. Instead: ratify a narrower, purpose-built
-      "correlation-contract" gate (a small marked test subset or new module) covering only the
-      specific facts that can break ADR-0014 -- exact veil_trace_id linkage path exists,
-      Tier-1 attach/no-attach behavior, Tier-2 never attaches alone, duplicate-trace-ID
-      fail-closed behavior, account/region mismatch non-attachment, deterministic event-ID
-      replay, and bedrock-mantle's explicit uncorrelatable status -- and make ONLY that gate
-      merge-blocking. Not yet decided by a human; this is Codex's recommendation, not a
-      ratified decision.
-    links: []
+      Closed 2026-09-06 as mostly an unsynchronized ledger, not a live open question: veilgremlin
+      had already reached this conclusion on 2026-08-23 (xhigh-effort Codex critique) and struck
+      its own item through, saying explicitly "deferred, not ratified" -- the reasoning was
+      settled, human ratification was not, and veil-observatory's own backlog never recorded the
+      answer. Ratified on both sides now: NOT `tests/pipeline/test_pipeline.py`'s full suite
+      (only 4 of its 14 tests are even ADR-0014-relevant); instead a new, narrow, independently-
+      runnable module, veil-observatory's `tests/correlation/test_correlation_contract_gate.py`
+      (ADR-0019), asserting against the PRODUCTION `Correlator` -- not `query_time.py`'s
+      prototype, which ADR-0016 explicitly bars from production status, a distinction the
+      original Codex recommendation's wording did not make. Covers 8 facts, not 7: building
+      against the real correlator surfaced `_identity_mismatch()`, a more security-critical
+      account/region-mismatch case (a receipt's own signed identity vs. the invocation) than the
+      CloudTrail-record case the recommendation named, added rather than traded for it. 10 new
+      tests, full suite 610 passed / 2 skipped, 0 regressions.
+    links:
+      - "veil-observatory/docs/decisions/ADR-0019-correlation-contract-gate.md"
+      - "veilgremlin/docs/decisions.md#2026-09-06"
 
   - id: XREPO-006
     title: "veil-observatory has no consumer for veil-custodian's GET /v1/attestation/status or GET /v1/certificates/crl"
