@@ -308,3 +308,7 @@ record of a question that has actually been answered:
       ratify a narrower purpose-built correlation-contract gate instead). See the registry
       entry for the full reasoning. Not yet decided by a human — this is a recommendation
       to weigh, not a ratified answer.
+
+## Session Update: 2026-09-06 — First real retire/promote review since scaffold
+
+- [ ] Sync project.yaml version and maturity fields; they are stale since scaffold despite meeting the beta bar now
