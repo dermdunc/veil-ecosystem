@@ -25,15 +25,32 @@ deps:
   - id: XREPO-001
     title: "veil-observatory has not called any of veil-custodian's three Role::Observatory-gated endpoints (attestation/status, certificates/crl, signing-keys/{key_ref})"
     repos: [veil-observatory, veil-custodian]
-    status: open
+    status: closed
     raised_date: 2026-08-22
-    reviewed_date: 2026-09-04
+    reviewed_date: 2026-09-06
+    closed_date: 2026-09-06
     detail: >
-      All three endpoints are real, routed, and authorised in veil-custodian; nothing in
-      veil-observatory invokes any of them. See docs/architecture.md's Integration Status
-      table and "Sequencing to close them" step 4.
+      Closed on one real, live-proven call, per docs/architecture.md's sequencing step 4
+      ("have veil-observatory call one of them for real"). veil-observatory's
+      GET /v1/signing-keys/{key_ref} caller (custodian.py's CustodianClient,
+      verify-signing-keys CLI command, ADR-0018) shipped in PR #17 -- independently reviewed
+      (4 real bugs found and fixed: an HTTP status-code miscategorization, an unhandled
+      OSError crash path, a malformed-finding edge case on revoked-with-no-revoked_at, and
+      duplicated algorithm-classification logic) before merging. Then live-proven, not just
+      unit-tested: veil-demo's ecdsa-signing-proof.sh gained Steps 8-10, which sight a real
+      signing key via a real edge event, check it against a real running veil-custodian,
+      revoke the device through a real (stub-authn) call to
+      POST /devices/{pseudonym}/revoke, and re-check -- confirming live that only a
+      structurally-accepted (never cryptographically verified) sighting can mint a
+      revoked-key CRITICAL finding, and that an HMAC-configured deployment's
+      unverifiable_algorithm-only sighting correctly mints nothing. attestation/status and
+      certificates/crl remain uncalled -- split out as XREPO-006, since they have no
+      consumer anywhere (design-from-scratch, not a fixture swap), and this step only ever
+      asked for one real call.
     links:
       - "docs/architecture.md#integration-status"
+      - "veil-observatory PR #17 (dermdunc/veil-observatory)"
+      - "veil-demo/docs/ecdsa-signing-proof-transcript.txt"
 
   - id: XREPO-002
     title: "No sandbox AWS account exists yet to validate veil-foundations' Terraform against, or for veil-observatory to ingest real evidence from"
@@ -122,3 +139,22 @@ deps:
       merge-blocking. Not yet decided by a human; this is Codex's recommendation, not a
       ratified decision.
     links: []
+
+  - id: XREPO-006
+    title: "veil-observatory has no consumer for veil-custodian's GET /v1/attestation/status or GET /v1/certificates/crl"
+    repos: [veil-observatory, veil-custodian]
+    status: open
+    raised_date: 2026-09-06
+    reviewed_date: 2026-09-06
+    detail: >
+      Split out of XREPO-001 on its closure (2026-09-06), rather than left implied by
+      silence. Unlike the signing-key-status endpoint, these two have no consumer anywhere
+      in veil-observatory today -- no stub, no fixture, no FindingEngine/Correlator seam
+      that wants CRL or attestation data. This is real design-from-scratch work, not a
+      fixture swap. The real constraint found while building XREPO-001's caller:
+      tests/fitness/test_architecture.py's ADR-0011 network-I/O exemption means any new
+      custodian caller must live in custodian.py and be reachable only from cli.py -- a CRL
+      cache consulted inline by the pipeline is architecturally excluded by the same fitness
+      tests that bound custodian.py today.
+    links:
+      - "docs/architecture.md#integration-status"

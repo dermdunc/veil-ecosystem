@@ -367,7 +367,7 @@ even call.
 |---|---|
 | veil-proxy → veil-observatory (signed telemetry receipt) | **Wired and demonstrated.** `EdgeEvent`, not `Receipt`; merged to `main` and pushed to GitHub on both sides (confirmed 2026-09-04 via `git rev-parse` — an earlier draft of this row said "not pushed," which was true 2026-08-29 and stale by 2026-08-30 when PR #58 actually merged to `origin/main`). See 2026-08-29 updates below. |
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
-| veil-observatory → veil-custodian (`attestation/status` + `certificates/crl` + `signing-keys/{key_ref}`) | **Built, no caller.** All three endpoints are live in veil-custodian (real axum routes, real handlers, all three are the grants `Role::Observatory` actually holds — see the note below the table); nothing in veil-observatory invokes any of them yet. |
+| veil-observatory → veil-custodian (`signing-keys/{key_ref}`) | **Wired and demonstrated.** One of veil-custodian's three `Role::Observatory` endpoints. `GET /v1/signing-keys/{key_ref}` has a real caller (veil-observatory PR #17: `CustodianClient`, `verify-signing-keys` CLI, ADR-0018), independently reviewed, and live-proven against a real running veil-custodian (veil-demo's `ecdsa-signing-proof.sh`, Steps 8-10: sight → lookup → a real revoke → a real CRITICAL finding minted on the accepted-sighting posture, correctly withheld on the unverifiable-only posture). `XREPO-001` closed 2026-09-06 on this one call, per this row's own step-4 ask below. `attestation/status` and `/certificates/crl` remain uncalled — no consumer anywhere in veil-observatory, tracked as `XREPO-006`. |
 | veil-enrol → veil-custodian (`POST /devices` enrolment, `.../certificates/renew`, `.../signing-keys`) | **Built, locally proven.** veil-enrol (PR #2, merged to `main` 2026-09-04) is the real, first, and only caller of these three endpoints anywhere in the family, per ADR-D/ADR-N's own design. `scripts/dev-e2e.sh` proves the full loop against a real local veil-custodian instance, including issued-certificate profile verification. Not yet a production integration: there is no on-device CSR-generation story yet (a future veilgremlin `vg-cli` writer, not built — see the veil-enrol component section above), and no MDM actually invokes `veil-enrol` today — a human operator runs it by hand. |
 | veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built, not live.** The pin mechanism works; the deployed instance is down. See 2026-08-30 update below. |
 
@@ -497,14 +497,17 @@ dependency order in `veilgremlin/docs/architecture/product-family.md` §9:
    synthetic fixtures for its correlation/detector test suite — that half of this step
    (retiring the fixtures) is a distinct, still-open piece, not closed by the emitter
    existing.
-4. **Wire one real observatory→custodian call.** **Partially superseded 2026-09-04: the
-   *enrolment* side of "wire one real custodian call" is now done, by veil-enrol, not by
-   this step** — but that closes a different grant (`EnrolmentAuthority`) than the one this
-   step is actually about. veil-custodian's `attestation/status`, `/certificates/crl`, and
-   (new) `/signing-keys/{key_ref}` endpoints are real, running services, all gated on
-   `Role::Observatory` — have veil-observatory call one of them for real. This proves the
-   "observatory never touches identity" boundary structurally, not just on paper, and
-   remains entirely unstarted.
+4. ~~Wire one real observatory→custodian call.~~ — **done, 2026-09-06 (`XREPO-001`
+   closed).** veil-observatory's `GET /v1/signing-keys/{key_ref}` caller
+   (`CustodianClient`/`verify-signing-keys`, ADR-0018) is real, independently reviewed, and
+   live-proven against a real running veil-custodian — sighting → lookup → a real revoke →
+   a real CRITICAL finding, in `veil-demo/scripts/ecdsa-signing-proof.sh`'s Steps 8-10. This
+   proves the "observatory never touches identity" boundary structurally, not just on
+   paper. (2026-09-04 note, still true: the *enrolment* side was already done separately by
+   veil-enrol, closing a different grant, `EnrolmentAuthority`, than `Role::Observatory`.)
+   `attestation/status` and `/certificates/crl` remain uncalled — no consumer exists
+   anywhere in veil-observatory for either yet, tracked separately as `XREPO-006` since this
+   step only ever asked for one real call.
 5. **Stand up one sandbox AWS account.** Apply veil-foundations' one real module against it,
    then extend to invocation logging. (The Guardrail-mandatory defect an earlier draft of this
    doc flagged here was already fixed via ADR-010 on 2026-08-23 — nothing left to fix before
