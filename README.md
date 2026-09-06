@@ -12,7 +12,7 @@
 - Scaffolded 2026-08-24, architecture doc written same day. **Updated 2026-09-04**: no longer
   documentation-only — Phase 0 of [docs/interactive-plan.md](docs/interactive-plan.md) shipped
   a real local status collector/checker (`scripts/eco_collector.py` / `eco_checker.py` /
-  `eco.sh`) and real CI (`.github/workflows/ci.yml`, running the checker + a 17-test unit
+  `eco.sh`) and real CI (`.github/workflows/ci.yml`, running the checker + a 28-test unit
   suite on every push and PR). See [docs/architecture.md](docs/architecture.md) for what's real
   across the family this repo describes, and `bash scripts/eco.sh status` for this repo's own
   live status of that family.
