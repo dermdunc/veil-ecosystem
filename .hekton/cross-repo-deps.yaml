@@ -70,16 +70,28 @@ deps:
   - id: XREPO-003
     title: "veil-custodian has no signing-key renewal endpoint; veil-enrol has no renew-signing-key subcommand to call it"
     repos: [veil-custodian, veil-enrol]
-    status: open
+    status: closed
     raised_date: 2026-08-31
-    reviewed_date: 2026-09-04
+    reviewed_date: 2026-09-06
+    closed_date: 2026-09-06
     detail: >
-      Both repos independently name the other half of this same gap in their own
-      next-actions.md, without linking to each other -- the exact drift this registry exists
-      to catch. veil-enrol's issue-signing-key command has no corresponding renewal path
-      because veil-custodian has never built one; ADR-VE-004 in veil-enrol deliberately
-      declines to guess the shape until it exists.
-    links: []
+      Closed 2026-09-06: an ADR first (veil-custodian's ADR-T, human-confirmed before any
+      code), then built and independently verified on both sides, then proven against each
+      other live. veil-custodian: POST /devices/{pseudonym}/signing-keys/{key_ref}/renew,
+      gated on EnrolmentAuthority, supersession via nullable superseded_by/superseded_at
+      columns (never status=revoked, never a new certificate_status value -- both checked
+      directly against consequences on veil-observatory's finding logic and this repo's own
+      offboarding cascade), 145 Postgres-backed tests. veil-enrol: renew-signing-key
+      subcommand, a new KeyRef newtype for path-injection safety, 100 tests
+      (--features dev-header-auth). Designing this surfaced and corrected a real factual
+      error in veil-enrol's ADR-VE-004 (repeat issuance with the same keypair does NOT
+      409 today, contrary to that ADR's original claim -- it silently succeeds). Live-proven
+      end to end in scripts/dev-e2e.sh's new Steps 11-12: a real renewal against a real
+      running veil-custodian, with the predecessor's superseded_by confirmed via a live GET
+      as veil-observatory, not just asserted by the CLI's own output.
+    links:
+      - "veil-custodian PR #27 (ADR-T), #28 (implementation)"
+      - "veil-enrol PR #6 (implementation)"
 
   - id: XREPO-004
     title: "veilgremlin's raw r||s (not DER) ECDSA signature-encoding decision needs sign-off from veil-custodian and veil-observatory before any real cross-repo signing happens"
