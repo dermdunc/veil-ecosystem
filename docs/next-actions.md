@@ -312,3 +312,8 @@ record of a question that has actually been answered:
 ## Session Update: 2026-09-06 — First real retire/promote review since scaffold
 
 - [ ] Sync project.yaml version and maturity fields; they are stale since scaffold despite meeting the beta bar now
+
+## Session Update: 2026-09-07 — XREPO-006 closure, tree tidy-up, XREPO-007 phased plan
+
+- [ ] Hand the final plan (~/.claude/plans/xrepo-007-device-ref-implementation.md) to a fresh session to execute
+- [ ] starting with Phase 0's prerequisite decisions
