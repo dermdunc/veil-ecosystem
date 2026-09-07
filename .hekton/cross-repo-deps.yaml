@@ -155,18 +155,59 @@ deps:
   - id: XREPO-006
     title: "veil-observatory has no consumer for veil-custodian's GET /v1/attestation/status or GET /v1/certificates/crl"
     repos: [veil-observatory, veil-custodian]
+    status: closed
+    raised_date: 2026-09-06
+    reviewed_date: 2026-09-06
+    closed_date: 2026-09-06
+    detail: >
+      Closed 2026-09-06: an ADR first (veil-observatory's ADR-0020, human-confirmed before
+      any code), then built and independently verified (648 tests, the three ADR-0011
+      fitness tests confirmed unmodified as the design predicted), then given real fixtures
+      and HTTP-integration tests on veil-custodian's side (150 tests, including one
+      specifically exercising the fixed most-recent-row attestation algorithm rather than
+      the superseded one), then proven live against a real veil-custodian in
+      veil-demo/scripts/ecdsa-signing-proof.sh's new Steps 11-13. The attestation consumer
+      fires a real finding when a device's attestation is revoked or expired while it still
+      has an accepted signing-key sighting -- also an independent live check on
+      veil-custodian's own tracked, non-atomic revocation-cascade bug. CRL is honestly
+      scoped to fetch+cache only, no findings: confirmed by grep that no
+      certificate-fingerprint concept exists anywhere in veil-observatory's contracts,
+      schemas, or storage, so there is nothing to join a CRL entry against today.
+      The live-run proof surfaced a real, separate finding, filed as XREPO-007 below rather
+      than silently worked around: veilgremlin hardcodes every real edge event's device_ref
+      to null, so the attestation consumer (and any future consumer of the same sighting
+      ledger) has nothing to check from ACTUAL production traffic yet -- only from a
+      synthetic seed, which the live-run proof used to still verify the consumer's own
+      logic is correct.
+    links:
+      - "docs/architecture.md#integration-status"
+      - "veil-observatory PR #21 (ADR-0020), #22 (implementation)"
+      - "veil-custodian PR #29 (openapi.yaml fix), #31 (fixtures)"
+      - "veil-demo/docs/ecdsa-signing-proof-transcript.txt"
+
+  - id: XREPO-007
+    title: "veilgremlin's telemetry sink hardcodes every real edge event's device_ref to null"
+    repos: [veilgremlin, veil-observatory]
     status: open
     raised_date: 2026-09-06
     reviewed_date: 2026-09-06
     detail: >
-      Split out of XREPO-001 on its closure (2026-09-06), rather than left implied by
-      silence. Unlike the signing-key-status endpoint, these two have no consumer anywhere
-      in veil-observatory today -- no stub, no fixture, no FindingEngine/Correlator seam
-      that wants CRL or attestation data. This is real design-from-scratch work, not a
-      fixture swap. The real constraint found while building XREPO-001's caller:
-      tests/fitness/test_architecture.py's ADR-0011 network-I/O exemption means any new
-      custodian caller must live in custodian.py and be reachable only from cli.py -- a CRL
-      cache consulted inline by the pipeline is architecturally excluded by the same fitness
-      tests that bound custodian.py today.
+      Found while live-run-proving XREPO-006's attestation consumer: veil-observatory's
+      verify-device-attestation reads device pseudonyms from the signing-key sighting
+      ledger XREPO-001 already populates (envelope_device_ref, preserved verbatim only when
+      it matches custodian's dev_<32hex> wire shape). Running the proof against the REAL,
+      organic pipeline (not a seeded record) found zero usable pseudonyms -- reading
+      veilgremlin's crates/vg-audit/src/telemetry_sink.rs directly (line 205) confirmed why:
+      EdgeEventRecordInput.device_ref is unconditionally set to None on every real
+      TelemetryCountingAuditSink::write, never populated from any real device identity.
+      This means no consumer of that sighting ledger -- this one, or any future one -- can
+      ever key off a real device pseudonym from actual production traffic today, only from
+      a synthetic seed (which XREPO-006's own live-run proof used to still verify its
+      consumer logic, precisely because this gap exists). Not a bug in either consumer;
+      a producer-side decision veilgremlin has not made yet -- what device identity, if
+      any, should populate this field, and how it should be derived without becoming a
+      second correlation channel the family's own pseudonymisation design otherwise
+      prevents. Deliberately not fixed as part of XREPO-006 -- that decision belongs to
+      veilgremlin, not to the two consumer repos that merely discovered its absence.
     links:
-      - "docs/architecture.md#integration-status"
+      - "veil-demo/docs/next-actions.md#session-update-2026-09-06--extended-the-ecdsa-proof-to-close-xrepo-006-and-found-xrepo-007"
