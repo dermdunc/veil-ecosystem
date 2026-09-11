@@ -240,26 +240,59 @@ deps:
   - id: XREPO-008
     title: "veil-observatory has no real ECDSA verification path -- ECDSA-signed records can never reach disposition accepted"
     repos: [veil-observatory, veilgremlin, veil-custodian]
-    status: open
+    status: closed
     raised_date: 2026-09-11
     reviewed_date: 2026-09-11
+    closed_date: 2026-09-11
     detail: >
-      Filed on XREPO-007's closure (its own plan's Phase 2), not absorbed into it. veil-observatory's
-      verifier supports HMAC only and explicitly, correctly refuses asymmetric algorithms
-      (src/veil_observatory/adapters/verification.py) rather than silently accepting them --
-      that refusal is correct behaviour today, not a bug, but it means an ECDSA-signed edge
-      event (the only kind that ever carries a real device_ref, per ADR-016) can never reach
-      disposition accepted, so verify-device-attestation and any future consumer of the
-      signing-key sighting ledger can never mint a finding from real, organic ECDSA traffic --
-      confirmed live in XREPO-007's own proof (HTTP 401, unverifiable_algorithm). A real
-      verifier needs either a native P-256 library or KMS Verify; the wire encoding question
-      is already settled (raw r||s, XREPO-004, closed 2026-09-05). Key material to verify
-      against comes from veil-custodian's GET /signing-keys/{key_ref}, already an
-      observatory-role grant under ADR-S. ADR first, on veil-observatory's side, per that
-      repo's own discipline; the stub-verifier path must stay clearly non-cryptographic and
-      never be used to manufacture evidence.
+      Closed 2026-09-11: ADR first on veil-observatory's side (ADR-0022), human-confirmed before
+      any code (interview-me pass surfaced two real design forks first -- native P-256 library vs
+      KMS Verify, decided native since no AWS account exists yet, XREPO-002; live custodian call
+      vs a pre-fetched local cache, decided local since custodian.py is fitness-test-locked as
+      reachable only from cli.py, ADR-0018). Built: EcdsaReceiptVerifier (raw r||s per XREPO-004,
+      DER-converted via cryptography's encode_dss_signature), a new local signing-key material
+      cache populated by verify-signing-keys (same custodian call the existing check ledger
+      already made, no second network round trip), and an opt-in AlgorithmDispatchVerifier
+      (VEIL_ECDSA_VERIFICATION) alongside the existing HmacReceiptVerifier so a deployment that
+      hasn't opted in sees zero behaviour change. cryptography added as a runtime dependency,
+      amending ADR-0004's zero-dependency stance.
+
+      Two full doubt-driven-development cycles run against the actual shipped implementation
+      (not just the ADR) before closure, each with a fresh-context reviewer, the second also
+      cross-model-corroborated by Codex -- ten real issues found and fixed across both cycles,
+      most severely: performs_cryptographic_verification used OR across the dispatch verifier's
+      branches, letting a stub-verified HMAC receipt get durably stamped as cryptographically
+      verified whenever ECDSA support was configured alongside it (fixed to AND); and, found by
+      Codex alone in cycle 2, the signing key was never bound to a record's own claimed
+      device_ref -- device A's genuinely-issued key could sign an event claiming to BE device B,
+      and it verified, because custodian's authoritative device_pseudonym was fetched but
+      silently dropped when populating the cache (fixed: now required in the cache and
+      cross-checked against any claimed device_ref). Every correction recorded inline in
+      ADR-0022 with the exact reproduction that found it.
+
+      Live-run proof (veil-demo/scripts/xrepo-008-ecdsa-verification-proof.sh, run twice -- once
+      before and once after the cycle-2 fixes) against real running veil-custodian/veil-enrol/
+      veilgremlin/veil-observatory: the SAME real ECDSA-signed edge event lands
+      401/unverifiable_algorithm before the key-material cache is populated (proves opt-in, no
+      default behaviour change -- byte-identical to XREPO-007's own proof), then a FRESH event
+      (new nonce) lands 202/accepted after -- the first time in this codebase's history a real,
+      organic ECDSA sighting has reached that disposition. Independently re-verified via plain
+      openssl outside veil-observatory's own code path (genuine signature verifies, tampered
+      signature correctly rejected).
+
+      Limitations closed with, stated explicitly rather than omitted: (1) a signing key's very
+      first sighting can never verify -- nothing has cached its material yet until an operator
+      runs verify-signing-keys. (2) Cache staleness / revocation lag: a key revoked at custodian
+      after the last verify-signing-keys run continues to verify successfully until the next
+      check run refreshes the cache -- the same lag ADR-0018 already accepted for the check
+      ledger driving revoked_key_finding, now extended to gate accepted too. (3) No KMS Verify
+      backend -- stays the documented future path, blocked on XREPO-002 (AWS sandbox account),
+      not on anything this closure decided. (4) XREPO-009 (device-side signing-credential
+      writer/lifecycle) remains separate and still open -- this closure does not touch it.
     links:
       - "veilgremlin/docs/decisions.md#2026-09-07-adr-016"
+      - "veil-observatory PR #24 (ADR-0022 + implementation + two DDD cycles)"
+      - "veil-demo PR #21 (live-run proof), docs/xrepo-008-ecdsa-verification-proof-transcript.txt"
 
   - id: XREPO-009
     title: "No device-side writer exists for a telemetry signing credential -- organic traffic emits device_ref: null until one does"
@@ -294,7 +327,9 @@ deps:
       pseudonym rides along on every event. Mandatory security-review before merge. Live-run
       proof needs zero seams: request-csr -> veil-enrol -> custodian issues -> install-cert
       -> fresh engine start loads from the real OS keychain with env vars asserted unset.
-      Whether that sighting reaches accepted depends on XREPO-008 having landed first.
+      Whether that sighting reaches accepted depends on XREPO-008 having landed first --
+      it has (closed 2026-09-11), so this prerequisite is now satisfied; XREPO-009's own
+      live-run proof, once built, can target accepted rather than unverifiable_algorithm.
     links:
       - "veilgremlin/docs/decisions.md#2026-09-07-adr-016"
       - "veil-enrol/docs/decisions.md ADR-VE-002"
