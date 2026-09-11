@@ -367,7 +367,7 @@ even call.
 |---|---|
 | veil-proxy → veil-observatory (signed telemetry receipt) | **Wired and demonstrated.** `EdgeEvent`, not `Receipt`; merged to `main` and pushed to GitHub on both sides (confirmed 2026-09-04 via `git rev-parse` — an earlier draft of this row said "not pushed," which was true 2026-08-29 and stale by 2026-08-30 when PR #58 actually merged to `origin/main`). See 2026-08-29 updates below. |
 | veil-foundations → veil-observatory (CloudTrail / Bedrock logs) | **Missing.** No real AWS account has been touched. |
-| veil-observatory → veil-custodian (`signing-keys/{key_ref}`, `attestation/status`, `certificates/crl`) | **Wired and demonstrated.** All three of veil-custodian's `Role::Observatory` endpoints now have real callers in `custodian.py`. `GET /v1/signing-keys/{key_ref}` (`verify-signing-keys` CLI, ADR-0018, `XREPO-001` closed 2026-09-06) and `GET /v1/attestation/status` + `GET /v1/certificates/crl` (`verify-device-attestation`/`fetch-crl` CLI, ADR-0020, `XREPO-006` closed 2026-09-06) are both independently reviewed and live-proven against a real running veil-custodian (veil-demo's `ecdsa-signing-proof.sh`, Steps 8-13). The attestation consumer only has a real trigger via a synthetic seed today — live-run-proving it found that veilgremlin's telemetry sink never populates a real `device_ref` on organic traffic, tracked separately as `XREPO-007`. CRL is honestly scoped to fetch+cache only, no findings (no certificate-fingerprint concept exists anywhere in veil-observatory to join against). |
+| veil-observatory → veil-custodian (`signing-keys/{key_ref}`, `attestation/status`, `certificates/crl`) | **Wired and demonstrated.** All three of veil-custodian's `Role::Observatory` endpoints now have real callers in `custodian.py`. `GET /v1/signing-keys/{key_ref}` (`verify-signing-keys` CLI, ADR-0018, `XREPO-001` closed 2026-09-06) and `GET /v1/attestation/status` + `GET /v1/certificates/crl` (`verify-device-attestation`/`fetch-crl` CLI, ADR-0020, `XREPO-006` closed 2026-09-06) are both independently reviewed and live-proven against a real running veil-custodian (veil-demo's `ecdsa-signing-proof.sh`, Steps 8-13). The attestation consumer's real trigger, `device_ref`, was itself the gap `XREPO-006`'s live-run proof surfaced (tracked as `XREPO-007`, now **closed 2026-09-11**) — veilgremlin now populates it for real ECDSA traffic (`veil-demo/scripts/xrepo-007-device-ref-proof.sh`), but the attestation consumer still cannot mint a finding from it: veil-observatory has no real ECDSA verifier, so these sightings land as `unverifiable_algorithm`, never `accepted` — tracked separately as `XREPO-008`. CRL is honestly scoped to fetch+cache only, no findings (no certificate-fingerprint concept exists anywhere in veil-observatory to join against). |
 | veil-enrol → veil-custodian (`POST /devices` enrolment, `.../certificates/renew`, `.../signing-keys`, `.../signing-keys/{key_ref}/renew`) | **Built, locally proven.** veil-enrol (PR #2, merged to `main` 2026-09-04) is the real, first, and only caller of these endpoints anywhere in the family, per ADR-D/ADR-N's own design. The fourth (`renew-signing-key`, XREPO-003/ADR-T) added 2026-09-06. `scripts/dev-e2e.sh` proves the full loop against a real local veil-custodian instance, including issued-certificate profile verification and, since 2026-09-06, a real signing-key renewal with the predecessor's `superseded_by` confirmed via a live `GET` as veil-observatory. Not yet a production integration: there is no on-device CSR-generation story yet (a future veilgremlin `vg-cli` writer, not built — see the veil-enrol component section above), and no MDM actually invokes `veil-enrol` today — a human operator runs it by hand. |
 | veil-proxy → veil-demo (`vg-core` as a pinned git dependency) | **Built, not live.** The pin mechanism works; the deployed instance is down. See 2026-08-30 update below. |
 
@@ -508,7 +508,13 @@ dependency order in `veilgremlin/docs/architecture/product-family.md` §9:
    `attestation/status` and `/certificates/crl` were tracked separately as `XREPO-006`
    since this step only ever asked for one real call — also now done, 2026-09-06 (ADR-0020,
    live-proven in the same script's Steps 11-13). All three `Role::Observatory` grants now
-   have real callers.
+   have real callers. The attestation consumer's own live-run proof then surfaced that
+   veilgremlin never populated a real `device_ref` (`XREPO-007`) — closed 2026-09-11
+   (veilgremlin ADR-016, veil-observatory ADR-0021, live-proven in
+   `veil-demo/scripts/xrepo-007-device-ref-proof.sh`), with two follow-on items filed
+   rather than absorbed: `XREPO-008` (veil-observatory has no real ECDSA verifier, so these
+   sightings still can't reach `accepted`) and `XREPO-009` (no device-side credential
+   installer, so organic un-seamed traffic still emits `device_ref: null`).
 5. **Stand up one sandbox AWS account.** Apply veil-foundations' one real module against it,
    then extend to invocation logging. (The Guardrail-mandatory defect an earlier draft of this
    doc flagged here was already fixed via ADR-010 on 2026-08-23 — nothing left to fix before
@@ -518,7 +524,8 @@ dependency order in `veilgremlin/docs/architecture/product-family.md` §9:
    certificate — was proven end-to-end 2026-09-05 (see the Integration Status section's
    2026-09-05 update and `XREPO-004`, now closed). What remains is not building a signer;
    it's `veil-observatory` building a real ECDSA *verification* path to match — a separate,
-   still-unscheduled piece of work this step never covered in the first place.
+   still-unscheduled piece of work this step never covered in the first place, now tracked
+   as `XREPO-008`.
 7. ~~Write the missing architecture document~~ — **done: this document.** Keeping it current is
    now the open item; see below.
 
