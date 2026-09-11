@@ -188,26 +188,113 @@ deps:
   - id: XREPO-007
     title: "veilgremlin's telemetry sink hardcodes every real edge event's device_ref to null"
     repos: [veilgremlin, veil-observatory]
-    status: open
+    status: closed
     raised_date: 2026-09-06
-    reviewed_date: 2026-09-06
+    reviewed_date: 2026-09-08
+    closed_date: 2026-09-11
     detail: >
-      Found while live-run-proving XREPO-006's attestation consumer: veil-observatory's
-      verify-device-attestation reads device pseudonyms from the signing-key sighting
-      ledger XREPO-001 already populates (envelope_device_ref, preserved verbatim only when
-      it matches custodian's dev_<32hex> wire shape). Running the proof against the REAL,
-      organic pipeline (not a seeded record) found zero usable pseudonyms -- reading
-      veilgremlin's crates/vg-audit/src/telemetry_sink.rs directly (line 205) confirmed why:
-      EdgeEventRecordInput.device_ref is unconditionally set to None on every real
-      TelemetryCountingAuditSink::write, never populated from any real device identity.
-      This means no consumer of that sighting ledger -- this one, or any future one -- can
-      ever key off a real device pseudonym from actual production traffic today, only from
-      a synthetic seed (which XREPO-006's own live-run proof used to still verify its
-      consumer logic, precisely because this gap exists). Not a bug in either consumer;
-      a producer-side decision veilgremlin has not made yet -- what device identity, if
-      any, should populate this field, and how it should be derived without becoming a
-      second correlation channel the family's own pseudonymisation design otherwise
-      prevents. Deliberately not fixed as part of XREPO-006 -- that decision belongs to
-      veilgremlin, not to the two consumer repos that merely discovered its absence.
+      Closed 2026-09-11: ADR first on both sides (veilgremlin's ADR-016, veil-observatory's
+      companion ADR-0021, both human-confirmed before any code, both revised through three
+      adversarial review rounds each -- Codex and Fable against the design, Codex again
+      against the shipped implementation -- with every finding and correction recorded
+      inline rather than smoothed over), then built (veilgremlin: SigningCredential::device_ref()
+      derives Envelope::device_ref structurally, dev_<32hex> wire format, schema_version
+      bumped to veil.edge_event.v2, interface-contract v1.8; veil-observatory: new v2 schema
+      with device_ref tightened to ^dev_[a-f0-9]{32}$, a shared dispatch resolver fixing two
+      independently hard-coded schema-id literals), independently verified (veilgremlin:
+      full cargo build/test/clippy/fmt/deny/audit clean; veil-observatory: 679 pytest passed,
+      validate-all.sh clean), then proven live against real running veil-custodian/veil-enrol/
+      veil-observatory instances (veil-demo/scripts/xrepo-007-device-ref-proof.sh): a real
+      custodian-issued ECDSA credential produced a real edge-event record declaring
+      schema_version=veil.edge_event.v2 and carrying the exact enrolled dev_<32hex> pseudonym
+      as device_ref, independently signature-verified (and a tampered signature correctly
+      rejected), with veil-observatory retaining the pseudonym verbatim in its signing-key
+      sighting ledger. veil-enrol's ADR-VE-005 amended same-day (the "two vocabularies"
+      premise it was built on no longer holds now that veilgremlin also emits dev_-prefixed).
+
+      Four limitations closed with, stated explicitly rather than omitted: (1) organic
+      traffic without a seamed or (future) keychain-installed credential still emits
+      device_ref: null -- no device-side credential installer exists
+      (vg-vault::keychain::load_device_signing_credential remains load-only). (2)
+      veil-observatory cannot cryptographically verify ECDSA, so these sightings land as
+      unverifiable_algorithm, not accepted, and the attestation consumer still cannot key
+      off them -- confirmed live in the same proof (HTTP 401, disposition
+      unverifiable_algorithm, not a manufactured "accepted"). (3) The certificate loader
+      does not verify the CA signature or validity interval
+      (vg-vault/src/certificate.rs) -- acceptable because the credential comes from the
+      local, already-trusted OS keychain in Phase 1; becomes a hard requirement once Phase 3
+      accepts a certificate file. (4) Historical null records are not backfilled.
+
+      Splitting rather than scope-creeping, same precedent XREPO-006's closure set: two new
+      items filed below rather than absorbed here -- XREPO-008 (veil-observatory real ECDSA
+      verification, the prerequisite for limitation 2) and XREPO-009 (device telemetry
+      signing credential lifecycle -- CSR request/cert install/renewal -- the prerequisite
+      for limitation 1).
     links:
       - "veil-demo/docs/next-actions.md#session-update-2026-09-06--extended-the-ecdsa-proof-to-close-xrepo-006-and-found-xrepo-007"
+      - "veilgremlin PR #70 (ADR-016 + implementation)"
+      - "veil-observatory PR #23 (ADR-0021 + implementation)"
+      - "veil-enrol PR #9 (ADR-VE-005 amendment)"
+      - "veil-demo PR #20 (live-run proof), docs/xrepo-007-device-ref-proof-transcript.txt"
+
+  - id: XREPO-008
+    title: "veil-observatory has no real ECDSA verification path -- ECDSA-signed records can never reach disposition accepted"
+    repos: [veil-observatory, veilgremlin, veil-custodian]
+    status: open
+    raised_date: 2026-09-11
+    reviewed_date: 2026-09-11
+    detail: >
+      Filed on XREPO-007's closure (its own plan's Phase 2), not absorbed into it. veil-observatory's
+      verifier supports HMAC only and explicitly, correctly refuses asymmetric algorithms
+      (src/veil_observatory/adapters/verification.py) rather than silently accepting them --
+      that refusal is correct behaviour today, not a bug, but it means an ECDSA-signed edge
+      event (the only kind that ever carries a real device_ref, per ADR-016) can never reach
+      disposition accepted, so verify-device-attestation and any future consumer of the
+      signing-key sighting ledger can never mint a finding from real, organic ECDSA traffic --
+      confirmed live in XREPO-007's own proof (HTTP 401, unverifiable_algorithm). A real
+      verifier needs either a native P-256 library or KMS Verify; the wire encoding question
+      is already settled (raw r||s, XREPO-004, closed 2026-09-05). Key material to verify
+      against comes from veil-custodian's GET /signing-keys/{key_ref}, already an
+      observatory-role grant under ADR-S. ADR first, on veil-observatory's side, per that
+      repo's own discipline; the stub-verifier path must stay clearly non-cryptographic and
+      never be used to manufacture evidence.
+    links:
+      - "veilgremlin/docs/decisions.md#2026-09-07-adr-016"
+
+  - id: XREPO-009
+    title: "No device-side writer exists for a telemetry signing credential -- organic traffic emits device_ref: null until one does"
+    repos: [veilgremlin, veil-enrol, veil-custodian]
+    status: open
+    raised_date: 2026-09-11
+    reviewed_date: 2026-09-11
+    detail: >
+      Filed on XREPO-007's closure (its own plan's Phase 3, the largest piece), not absorbed
+      into it. vg-vault::keychain::load_device_signing_credential is load-only by design; the
+      only populater ever exercised is the VG_DEVICE_SIGNING_KEY_HEX/VG_DEVICE_SIGNING_CERT_PEM
+      env-var test seam, proven repeatedly (XREPO-007's own live-run proof included) but never
+      intended as a production install path. CSR-only issuance is already ratified and
+      implemented elsewhere in this family (veil-custodian ADR-M/ADR-S: device generates the
+      key, custodian never sees or generates it) -- this item is NOT a re-litigation of
+      key-transport-vs-CSR; that question is closed. What's missing is the device-side
+      surface: veil-enrol's own accepted design already names it (`vg enrol request-csr` /
+      `vg enrol install-cert`, to live in veilgremlin's vg-cli per veil-enrol's ADR-VE-002 --
+      no device-side binary ships from veil-enrol itself). Hard, unsolved problems named
+      explicitly so they aren't discovered mid-implementation: certificate-authenticity/
+      trust-anchor distribution (the current loader's "it came from the trusted keychain"
+      assumption stops holding once an installer accepts a certificate file --
+      vg-vault/src/certificate.rs's own documented limitation, XREPO-007's closure item 3);
+      atomic pending/active installation and crash recovery (the keychain code's own
+      documented check-then-set non-atomicity); 30-day renewal/expiry lifecycle; mTLS-vs-
+      signing credential profile separation (veil-enrol's architecture already requires
+      separate keypairs per profile); keychain platform scope (macOS/Windows/Linux all
+      enabled in vg-vault's Cargo.toml, not yet decided which are actually supported);
+      whether an exportable raw P-256 scalar remains acceptable; the env-var override's
+      policy on a managed device (precedence is already defined, the policy isn't); and
+      plain-HTTP telemetry transport becoming materially more sensitive once a stable
+      pseudonym rides along on every event. Mandatory security-review before merge. Live-run
+      proof needs zero seams: request-csr -> veil-enrol -> custodian issues -> install-cert
+      -> fresh engine start loads from the real OS keychain with env vars asserted unset.
+      Whether that sighting reaches accepted depends on XREPO-008 having landed first.
+    links:
+      - "veilgremlin/docs/decisions.md#2026-09-07-adr-016"
+      - "veil-enrol/docs/decisions.md ADR-VE-002"
