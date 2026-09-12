@@ -297,39 +297,227 @@ deps:
   - id: XREPO-009
     title: "No device-side writer exists for a telemetry signing credential -- organic traffic emits device_ref: null until one does"
     repos: [veilgremlin, veil-enrol, veil-custodian]
-    status: open
+    status: closed
     raised_date: 2026-09-11
     reviewed_date: 2026-09-11
+    closed_date: 2026-09-12
     detail: >
-      Filed on XREPO-007's closure (its own plan's Phase 3, the largest piece), not absorbed
-      into it. vg-vault::keychain::load_device_signing_credential is load-only by design; the
-      only populater ever exercised is the VG_DEVICE_SIGNING_KEY_HEX/VG_DEVICE_SIGNING_CERT_PEM
-      env-var test seam, proven repeatedly (XREPO-007's own live-run proof included) but never
-      intended as a production install path. CSR-only issuance is already ratified and
-      implemented elsewhere in this family (veil-custodian ADR-M/ADR-S: device generates the
-      key, custodian never sees or generates it) -- this item is NOT a re-litigation of
-      key-transport-vs-CSR; that question is closed. What's missing is the device-side
-      surface: veil-enrol's own accepted design already names it (`vg enrol request-csr` /
-      `vg enrol install-cert`, to live in veilgremlin's vg-cli per veil-enrol's ADR-VE-002 --
-      no device-side binary ships from veil-enrol itself). Hard, unsolved problems named
-      explicitly so they aren't discovered mid-implementation: certificate-authenticity/
-      trust-anchor distribution (the current loader's "it came from the trusted keychain"
-      assumption stops holding once an installer accepts a certificate file --
-      vg-vault/src/certificate.rs's own documented limitation, XREPO-007's closure item 3);
-      atomic pending/active installation and crash recovery (the keychain code's own
-      documented check-then-set non-atomicity); 30-day renewal/expiry lifecycle; mTLS-vs-
-      signing credential profile separation (veil-enrol's architecture already requires
-      separate keypairs per profile); keychain platform scope (macOS/Windows/Linux all
-      enabled in vg-vault's Cargo.toml, not yet decided which are actually supported);
-      whether an exportable raw P-256 scalar remains acceptable; the env-var override's
-      policy on a managed device (precedence is already defined, the policy isn't); and
-      plain-HTTP telemetry transport becoming materially more sensitive once a stable
-      pseudonym rides along on every event. Mandatory security-review before merge. Live-run
-      proof needs zero seams: request-csr -> veil-enrol -> custodian issues -> install-cert
-      -> fresh engine start loads from the real OS keychain with env vars asserted unset.
-      Whether that sighting reaches accepted depends on XREPO-008 having landed first --
-      it has (closed 2026-09-11), so this prerequisite is now satisfied; XREPO-009's own
-      live-run proof, once built, can target accepted rather than unverifiable_algorithm.
+      Closed 2026-09-12: ADR first on veilgremlin's side (ADR-017), human-confirmed before any
+      code (Phase 0 settled eight design forks individually -- `--ca-cert` mandatory with no
+      bypass; the live-run proof mutates the real login keychain with trap-based teardown;
+      install-cert hard-errors on the env seam while request-csr only warns; platform scope
+      narrowed to macOS for Phase 1; pre-existing-entry policy auto-recovers crash residue
+      without `--force` but requires it for a genuine conflict; the enrolment marker is built
+      now, not deferred; `vg enrol status`/`cancel-csr` included). Built: `vg-vault::enrol`
+      (`request_device_signing_csr`, `install_device_signing_certificate`, `cancel_pending_csr`,
+      `credential_status`) -- the first device-side keychain *writer* this family has ever
+      shipped, not just a loader; a hand-assembled PKCS#10 CSR (not `x509-cert`'s `builder`
+      feature, which forces an unwanted `extensionRequest` attribute divergent from the
+      openssl-shaped CSR `veil-custodian`/`veil-enrol` are actually tested against); a
+      pinned-CA anchor verifier (`vg-vault::anchor`) closing `certificate.rs`'s own documented
+      "CA signature unchecked" gap for the one case it actually matters -- an installer
+      accepting a certificate file, not a value already sourced from the trusted keychain; a
+      `SecretStore` trait so the install state machine is fully unit-tested without a real
+      keychain; a single read-only classification pass (Fresh/AlreadyInstalled/RecoverKey/
+      Conflict/Corrupt) evaluated in full before any write; crash recovery via certificate DER
+      equality, not SPKI equality (custodian permits repeat issuance of different certificates
+      from the same key); a device-global `flock` lock resolved via `getpwuid_r`, not `$HOME`
+      (attacker/process-controlled). `vg enrol request-csr|install-cert|status|cancel-csr` added
+      to vg-cli, dispatched before `StatePaths::resolve` since enrolment is device-level, not
+      repo-level.
+
+      Two design-review rounds against ADR-017's draft before any code was written, then two
+      further rounds (fresh-context single-model + Codex cross-model, both given only the diff
+      and the ADR's own text, never the author's reasoning) against the *shipped*
+      implementation -- eleven real issues found and fixed, most severely: a crash mid-`--force`
+      replacement demanded a second `--force` to recover, contradicting ADR-017's own recovery
+      table; a rejected certificate could write the marker and certificate before its pending
+      key was ever validated to exist or match; and the device-global lock's path was derived
+      from `$HOME`, which is attacker/process-controlled. A dedicated `security-review` pass
+      found no high-confidence vulnerabilities. A four-perspective panel review (engineer,
+      security, risk/privacy, legal) then read the finished ADR and shipped code directly, not
+      summaries: engineer found one further live bug (`cancel-csr` reported false-positive
+      success for an unknown fingerprint, fixed with regression tests); security signed off
+      with no pushback; risk/privacy gave conditional sign-off (three follow-ups, filed below);
+      legal approved for merge with two conditions, one of which (open the CA-algorithm gap as
+      a tracked, owned ticket, not just ADR prose) is filed below as XREPO-013. Every finding
+      from every round recorded inline in ADR-017 with the reproduction that found it.
+
+      Live-run proof (veil-demo/scripts/xrepo-009-device-credential-install-proof.sh, forked
+      from xrepo-008-ecdsa-verification-proof.sh) against real running veil-custodian/
+      veil-enrol/veilgremlin/veil-observatory, run three times: `vg enrol request-csr` generates
+      the signing keypair itself (never touches disk, never printed) and writes a pending entry
+      to the real macOS login keychain; `veil-enrol issue-signing-key` issues a real certificate
+      for it; `vg enrol install-cert` verifies that certificate against the real custodian CA
+      and writes the credential to the real keychain -- the first time any command in this
+      family's history has written a device signing credential, not just loaded one. An
+      explicit unset-and-assert step then proves VG_DEVICE_SIGNING_KEY_HEX/_CERT_PEM are
+      completely absent before two further, independent vg processes each load the credential
+      fresh from the keychain alone: the first lands 401 (this deployment has no ECDSA verifier
+      configured yet, exactly XREPO-007/008's own posture -- the two-phase cache-seeding dance
+      turned out not to be skippable, since a cache-miss under an ECDSA-capable verifier is a
+      plain rejection that veil-observatory's pipeline deliberately excludes from the sighting
+      ledger, a real bug the first of the three runs caught); the second, after
+      verify-signing-keys populates the signing-key material cache and the observatory restarts
+      with VEIL_ECDSA_VERIFICATION=1, lands 202/accepted -- the first time organic, zero-seam
+      production traffic has reached that disposition in this codebase's history, closing the
+      exact gap XREPO-007's own proof named as remaining. Independent openssl verification
+      confirms device_ref and a genuinely valid signature, and rejects a deliberately tampered
+      copy. A dedicated adversarial review of the proof script's own blast radius (keychain
+      deletes, pkill/kill scoping, exit-trap correctness, output-parsing fragility) ran before
+      any live execution -- found no exploitable issue; its two non-blocking findings (trap-path
+      teardown not re-verifying deletion; a silent custodian-health-check fallthrough) are both
+      fixed in the committed script. Keychain teardown re-verifies absence after every run,
+      including two runs the script itself caught real bugs in -- the trap-based safety net
+      left the keychain clean on both.
+
+      Five closure limitations stated explicitly, not glossed over: (1) no real CA trust-anchor
+      *distribution* mechanism exists -- an operator obtains the pinned CA file out-of-band, by
+      the same channel discipline already used for the certificate handoff itself. (2) The
+      writer is verified on macOS only; Windows and Linux-keyutils remain enabled but untested
+      for writes. (3) No renewal automation exists -- a fresh CSR/install cycle before a
+      credential's 30-day not_after is entirely manual, with only a seven-day install-time
+      warning as a backstop. (4) This is not an MDM enrolment path -- it proves OS-keychain
+      interoperability with a real, custodian-issued certificate, not a production enrolment or
+      renewal story. (5) The anchor check is proven against veil-custodian's auto-generated
+      local/test CA (P-256/ECDSA-SHA256) only -- veil-custodian does not itself restrict a
+      *provisioned* production CA to that algorithm, so install-cert's fail-safe refusal of a
+      mismatched algorithm is untested against every CA veil-custodian could theoretically be
+      provisioned with.
+
+      Six new items filed rather than absorbed, same splitting precedent this family has used
+      since XREPO-006's closure: XREPO-010 (CA trust-anchor distribution, limitation 1),
+      XREPO-011 (cross-platform writer support, limitation 2 -- also closes the risk/privacy
+      panel's build-matrix follow-up), XREPO-012 (renewal automation with a revocation-awareness
+      check folded into that cadence, limitation 3 -- also closes the risk/privacy panel's
+      revocation-tracking follow-up), XREPO-013 (pin or verify the CA-algorithm constraint
+      cross-repo, limitation 5 -- the legal panel's explicit, non-optional ask for a tracked,
+      owned ticket rather than ADR prose alone), XREPO-014 (managed-device credential policy:
+      raw P-256 scalar exportability and the env-var override's precedence policy, both named
+      but left undecided when this item was originally filed), and XREPO-015 (plain-HTTP
+      telemetry transport becoming materially more sensitive now that a stable, real device
+      pseudonym reaches veil-observatory organically). Limitation 4 is a scope statement, not
+      actionable work, and is not filed as its own item -- same treatment XREPO-007's closure
+      gave its own "historical nulls not backfilled" limitation.
     links:
-      - "veilgremlin/docs/decisions.md#2026-09-07-adr-016"
-      - "veil-enrol/docs/decisions.md ADR-VE-002"
+      - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+      - "veilgremlin PR #71 (ADR-017 + implementation + panel review)"
+      - "veil-demo PR #22 (live-run proof), docs/xrepo-009-device-credential-install-proof-transcript.txt"
+
+  - id: XREPO-010
+    title: "No CA trust-anchor distribution mechanism for the device signing-credential writer"
+    repos: [veilgremlin, veil-enrol, veil-custodian]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed on XREPO-009's closure (that ADR's closure limitation 1), not absorbed into it.
+      `vg enrol install-cert --ca-cert` requires a pinned CA certificate file, obtained today by
+      the same out-of-band channel discipline already used for the certificate handoff itself --
+      there is no mechanism anywhere in this family for a device or operator to actually obtain
+      that file at scale, with integrity, without a human copying it by hand. Becomes a hard
+      requirement before any fleet-shaped rollout, not before individual, supervised installs.
+    links:
+      - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+
+  - id: XREPO-011
+    title: "Device signing-credential writer is verified on macOS only -- Windows/Linux-keyutils writes are untested"
+    repos: [veilgremlin]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed on XREPO-009's closure (that ADR's closure limitation 2; also closes the risk/privacy
+      panel's follow-up to flag the untested platform gap in a build matrix), not absorbed into
+      it. `vg-vault`'s `keyring`-backed writer path (`request_device_signing_csr`,
+      `install_device_signing_certificate`) is exercised live only against the real macOS login
+      keychain; the loader-only path was already cross-platform before this ADR and stays
+      unchanged, but the new writer's behavior on Windows Credential Manager or Linux keyutils is
+      untested and unclaimed. Needs its own live-run proof per platform before either is
+      considered supported, plus a CI or build-matrix flag making the gap visible rather than
+      implicit in Cargo.toml's feature set.
+    links:
+      - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+
+  - id: XREPO-012
+    title: "No renewal automation for the device signing credential; no active revocation-awareness before that renewal cadence exists"
+    repos: [veilgremlin, veil-enrol, veil-custodian]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed on XREPO-009's closure (that ADR's closure limitation 3, folding in the risk/privacy
+      panel's revocation-tracking follow-up rather than filing it separately), not absorbed into
+      it. A fresh CSR/install cycle before a credential's 30-day `not_after`
+      (veil-custodian's ADR-S) is entirely manual today, with only a seven-day install-time
+      expiry warning as a backstop -- no scheduler, no automatic re-request. The risk/privacy
+      panel's concern is adjacent, not identical: this family should not treat a device signing
+      credential as effectively long-lived in a real fleet without an active check against
+      custodian-side revocation somewhere in that renewal path, not only a passive expiry
+      warning. Scoping both together here rather than as two tickets, since any renewal-cadence
+      design has to answer the revocation question to be complete.
+    links:
+      - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+
+  - id: XREPO-013
+    title: "Device signing-credential CA-algorithm constraint (P-256/ECDSA-SHA256) is proven only against veil-custodian's dev CA, not pinned or verified cross-repo"
+    repos: [veilgremlin, veil-custodian]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed on XREPO-009's closure (that ADR's closure limitation 5, round-A finding) at the
+      legal panel's explicit, non-optional request during that closure's review: "open the
+      CA-algorithm-constraint gap as a tracked ticket with an owner, not just ADR prose."
+      `vg-vault::anchor`'s install-time verification requires the anchor and leaf both be
+      P-256/ECDSA-SHA256, matching veil-custodian's auto-generated local/test CA
+      (`rcgen::KeyPair::generate()`'s default) -- but veil-custodian does not itself restrict a
+      *provisioned production* CA to that algorithm (`KeyPair::from_pem` and the underlying
+      `rcgen` both accept Ed25519/P-384/RSA issuer keys). `install-cert` refuses rather than
+      silently accepts a mismatched algorithm, so this fails safe today, but the constraint has
+      never been pinned or verified against anything other than the dev CA. Needs an owner and a
+      decision: either veil-custodian formally restricts production CA provisioning to
+      P-256/ECDSA-SHA256, or veilgremlin's anchor verifier is extended to support whatever
+      algorithm set veil-custodian actually commits to allowing. Tracked in
+      veilgremlin's own `docs/risks.md` as RISK-0013.
+    links:
+      - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+      - "veilgremlin/docs/risks.md#risk-0013"
+
+  - id: XREPO-014
+    title: "Managed-device policy for the signing credential is undecided: raw P-256 scalar exportability and env-var override precedence"
+    repos: [veilgremlin]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed on XREPO-009's closure (named in that item's original filing as open questions,
+      deliberately not resolved by Phase 1), not absorbed into it. Two distinct, still-undecided
+      policy questions: whether an exportable raw P-256 scalar remains acceptable once a real
+      writer exists (Phase 1 inherits the loader's existing exportable-scalar behavior
+      unchanged, without re-deciding it); and what the VG_DEVICE_SIGNING_KEY_HEX/
+      VG_DEVICE_SIGNING_CERT_PEM env-var seam's precedence over a keychain-installed credential
+      should be *as organizational policy* on a managed device, as distinct from the mechanism
+      (already defined: the seam shadows the keychain, and install-cert refuses to run while it
+      is set) -- e.g. whether MDM tooling should be able to set it at all outside a controlled
+      support/debug flow.
+    links:
+      - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+
+  - id: XREPO-015
+    title: "Plain-HTTP telemetry transport becomes materially more sensitive now that a stable, real device pseudonym reaches veil-observatory organically"
+    repos: [veilgremlin, veil-observatory]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed on XREPO-009's closure (named in that item's original filing as an open question),
+      not absorbed into it. Telemetry transport has been plain HTTP throughout this family's
+      build-out, acceptable while device_ref was always null (XREPO-007) or only reachable via a
+      test seam. Now that XREPO-009 lets organic, zero-seam traffic carry a real, stable
+      dev_<32hex> pseudonym end to end, a network observer gains a durable per-device
+      correlation handle it didn't have before -- worth a real TLS decision (and whichever
+      certificate/trust-anchor story that implies) rather than continuing to defer it now that
+      the field it would protect is live in production traffic, not just in proofs.
+    links:
+      - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
