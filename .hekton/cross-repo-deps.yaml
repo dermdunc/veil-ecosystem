@@ -417,8 +417,17 @@ deps:
       there is no mechanism anywhere in this family for a device or operator to actually obtain
       that file at scale, with integrity, without a human copying it by hand. Becomes a hard
       requirement before any fleet-shaped rollout, not before individual, supervised installs.
+
+      **Scope correction (2026-09-12, beta-planning pipeline -- `docs/beta-implementation-plan.md`
+      §7):** must state explicitly whether this item covers the device-cert CA only, or also the
+      new telemetry-TLS trust anchor XREPO-015's client-side work (`C1a`) introduces once that
+      work lands -- the two are separate anchors serving separate purposes, and a rollout plan
+      that pins one without naming the other will silently assume the second is solved. Beta's
+      own recommended answer (plan §4, item D1): bundle the pinned device-CA cert inside the
+      signed `vg` release artifact, using the release signature itself as the integrity channel.
     links:
       - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+      - "veil-ecosystem/docs/beta-implementation-plan.md#7-under--and-over-scoped-existing-items"
 
   - id: XREPO-011
     title: "Device signing-credential writer is verified on macOS only -- Windows/Linux-keyutils writes are untested"
@@ -436,8 +445,19 @@ deps:
       untested and unclaimed. Needs its own live-run proof per platform before either is
       considered supported, plus a CI or build-matrix flag making the gap visible rather than
       implicit in Cargo.toml's feature set.
+
+      **Scope correction (2026-09-12, beta-planning pipeline):** understated as filed --
+      independently verified against source that `vg-vault::enrol`'s `EnrolLock` is
+      `#[cfg(unix)]`-gated with a genuinely erroring (not silently no-op) stub on non-Unix
+      targets, and CI (`ci.yml`) runs `macos-latest` only for build/test/clippy/fmt; the one
+      `ubuntu-latest` job that exists is `cargo-deny` via a container action and never compiles
+      the workspace. This is not "untested on Windows/Linux," it is "absent on Windows/Linux,
+      with no compiling non-macOS CI job at all" -- a build-out, not a verification pass. Not on
+      the beta critical path (beta scopes to macOS only, `docs/beta-implementation-plan.md` §1);
+      stays open as an independent, optional stream.
     links:
       - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+      - "veil-ecosystem/docs/beta-implementation-plan.md#7-under--and-over-scoped-existing-items"
 
   - id: XREPO-012
     title: "No renewal automation for the device signing credential; no active revocation-awareness before that renewal cadence exists"
@@ -456,8 +476,22 @@ deps:
       custodian-side revocation somewhere in that renewal path, not only a passive expiry
       warning. Scoping both together here rather than as two tickets, since any renewal-cadence
       design has to answer the revocation question to be complete.
+
+      **Scope correction (2026-09-12, beta-planning pipeline):** narrower than filed, in the
+      direction of already-mostly-solved. `veil-custodian`'s ADR-T (merged 2026-09-06, six days
+      before this item's original filing) already built
+      `POST /devices/{pseudonym}/signing-keys/{key_ref}/renew` and explicitly settled the
+      device-can't-call-custodian trust-boundary question this item's original text treated as
+      open (the role is forced by ADR-D/ADR-N, not a fresh design choice). Independently
+      confirmed against `veil-custodian/src/api/mod.rs`: issue, renew, and get-by-`key_ref`
+      routes exist; a device-level list-all-keys enumeration endpoint is genuinely absent.
+      Remaining scope is narrow: that one new endpoint, plus client-side scheduling to call the
+      already-built renew endpoint on a cadence -- wiring, not an ADR-level architecture
+      decision. The revocation-awareness half (above) is unaffected by this correction.
     links:
       - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+      - "veil-custodian/docs/decisions.md#adr-t"
+      - "veil-ecosystem/docs/beta-implementation-plan.md#7-under--and-over-scoped-existing-items"
 
   - id: XREPO-013
     title: "Device signing-credential CA-algorithm constraint (P-256/ECDSA-SHA256) is proven only against veil-custodian's dev CA, not pinned or verified cross-repo"
@@ -480,9 +514,20 @@ deps:
       P-256/ECDSA-SHA256, or veilgremlin's anchor verifier is extended to support whatever
       algorithm set veil-custodian actually commits to allowing. Tracked in
       veilgremlin's own `docs/risks.md` as RISK-0013.
+
+      **Scope correction (2026-09-12, beta-planning pipeline):** under-scoped as filed --
+      independently confirmed against `veil-custodian/src/ca/mod.rs::load_or_generate` that when
+      a provisioned CA's cert/key files exist, they are read and returned with **zero
+      validation**: no check that the key matches the certificate, no algorithm check, no
+      validity/expiry check. The algorithm-pinning question this item names is one clause of a
+      larger gap -- "validate a provisioned CA's material at startup" -- not the whole of it.
+      Beta's own decision (plan §3, D-BETA-5): pin production CA provisioning to
+      P-256/ECDSA-SHA256; the implementation, including the broader validation gap, lands as
+      Phase B item B4.
     links:
       - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
       - "veilgremlin/docs/risks.md#risk-0013"
+      - "veil-ecosystem/docs/beta-implementation-plan.md#7-under--and-over-scoped-existing-items"
 
   - id: XREPO-014
     title: "Managed-device policy for the signing credential is undecided: raw P-256 scalar exportability and env-var override precedence"
@@ -519,5 +564,120 @@ deps:
       correlation handle it didn't have before -- worth a real TLS decision (and whichever
       certificate/trust-anchor story that implies) rather than continuing to defer it now that
       the field it would protect is live in production traffic, not just in proofs.
+
+      **Scope correction (2026-09-12, beta-planning pipeline):** under-scoped as filed -- this
+      reads like a configuration flip ("turn on TLS") but independently confirmed against source
+      it is not. `veilgremlin`'s `parse_observatory_endpoint` rejects any scheme but `http` at
+      parse time, guarded by a test literally named
+      `https_endpoint_is_rejected_tls_is_out_of_scope` -- so this is an interface-contract change
+      (a new major version of the telemetry-emitter contract) plus a real `rustls` client, not a
+      config toggle. `veil-observatory`'s receiver has no TLS listener at all today (confirmed:
+      binds `127.0.0.1` by default, its own module docstring states there is no TLS and no
+      transport-level auth). And it introduces a second trust-anchor question distinct from
+      XREPO-010's device-cert CA: whichever CA signs the telemetry endpoint's own TLS
+      certificate. Beta's own plan (`docs/beta-implementation-plan.md` §4, items C1a/C1b) splits
+      this into a client-side half (contract change + rustls client, buildable against a local
+      mock TLS server, no dependency on a live deployment) and an integration half (needs the
+      real TLS-terminating edge from Phase B) -- the client-side half does not need to wait on
+      server-side infrastructure landing first, contrary to a naive reading of this item.
     links:
       - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+      - "veil-ecosystem/docs/beta-implementation-plan.md#7-under--and-over-scoped-existing-items"
+
+  - id: XREPO-016
+    title: "No component holds Role::RevocationAuthority in any real sense -- every device revocation ever executed was a stub-authn curl against a dev custodian"
+    repos: [veil-custodian, veil-enrol]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed from `docs/beta-implementation-plan.md`'s Phase C (item C2), produced by this
+      session's Fable-draft -> adversarial-critique -> Opus-consolidation planning pipeline for a
+      beta release. `POST /devices/{pseudonym}/revoke` is gated on `Role::RevocationAuthority`, a
+      role independently confirmed to be distinct from `Role::EnrolmentAuthority` in
+      `veil-custodian/src/api/handlers/devices.rs`, and confirmed unheld by any component in this
+      family in any gateway-verified sense -- every revocation any proof script in this family
+      has ever executed (XREPO-007/008/009's own live-run proofs included) used the dev-only
+      `stub-authn` header trust, not a real credential. `veil-enrol`'s ADR-VE-001 deliberately
+      excludes revoke from its own scope (separation of duties), so `veil-enrol` itself has no
+      `revoke` subcommand today. A beta with real external users needs a genuine,
+      authenticated revocation path with an operator-facing command -- either a second credential
+      profile added to `veil-enrol`, or a minimal separate CLI holding only this one role. Beta
+      plan pairs this with a device-side uninstall/offboarding flow (same plan, item D4) so the
+      operator and device halves of "cleanly remove a device" land together.
+    links:
+      - "veil-ecosystem/docs/beta-implementation-plan.md#phase-c--telemetry-over-tls--revocation-authority"
+
+  - id: XREPO-017
+    title: "No remote-enrolment workflow exists -- every enrolment/credential-issuance proof in this family has run device and operator on the same machine"
+    repos: [veilgremlin, veil-enrol, veil-custodian]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed from `docs/beta-implementation-plan.md`'s Phase D (item D2), same planning pipeline
+      as XREPO-016. Every live-run proof in this family (XREPO-007/008/009 included) enrolled a
+      device and issued its credentials with the "device" and the "operator" being the same
+      person on the same laptop. A beta with real, physically-remote users needs a defined
+      handoff: `vg enrol request-csr`'s output travels to the operator over some transfer
+      channel, the operator independently confirms the CSR's SPKI fingerprint out-of-band before
+      issuing (the exact discipline `veil-enrol`'s own RISK-0002 mitigation already names, just
+      never exercised against a real remote counterparty), `veil-enrol` issues, the resulting
+      certificate travels back, and the user runs `install-cert`. Needs a scriptable/batchable
+      operator-side path too -- not full MDM, but a beta with more than a handful of devices
+      needs enrolment to not be a one-at-a-time manual bottleneck (named in
+      `docs/prfaq-beta.md`'s own Q3 gap list, item 1, before this item existed to hold it).
+      Custodian-issued certificates must come from a CA whose EKU OID is a real registered IANA
+      Private Enterprise Number by the time this workflow issues its first non-dev certificate
+      (veilgremlin's RISK-0012) -- this item is where that gate is actually enforced.
+    links:
+      - "veil-ecosystem/docs/beta-implementation-plan.md#phase-d--enrolment-trust-anchors-renewal-lifecycle"
+      - "veilgremlin/docs/risks.md#risk-0012"
+
+  - id: XREPO-018
+    title: "No release engineering exists for vg -- no signed/notarized binary, no SBOM, no tested upgrade path against binary-scoped keychain ACLs"
+    repos: [veilgremlin]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed from `docs/beta-implementation-plan.md`'s Phase E (item E1), same planning pipeline
+      as XREPO-016/017. Every proof and every development invocation of `vg` in this family's
+      history has run a locally-built `target/debug`/`target/release` binary -- there is no
+      signed, notarized, versioned release artifact, and RISK-0007's stated SBOM mitigation is
+      currently an explicit stub, not real output. A beta user needs to install `vg` without a
+      Rust toolchain. This is more than packaging: XREPO-009's own closure documented that
+      keychain items written by a locally-built `vg` binary carry a binary-scoped ACL -- a
+      rebuilt or re-signed `vg` can plausibly lose access to an already-installed credential, so
+      a stable codesigning identity is part of the device-credential lifecycle, not a cosmetic
+      release concern. Needs an explicit test: install v1, enrol, install v2 (same signing
+      identity), confirm the keychain ACL still grants access to the credential v1 installed --
+      plus a documented recovery procedure (re-run `install-cert`) for when it doesn't, including
+      across a routine macOS minor-version update.
+    links:
+      - "veil-ecosystem/docs/beta-implementation-plan.md#phase-e--release-engineering-and-beta-acceptance"
+      - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+
+  - id: XREPO-019
+    title: "No cross-repo version-compatibility policy or version handshake exists across six independently-cadenced repos"
+    repos: [veilgremlin, veil-custodian, veil-enrol, veil-observatory]
+    status: open
+    raised_date: 2026-09-12
+    reviewed_date: 2026-09-12
+    detail: >
+      Filed from `docs/beta-implementation-plan.md`'s Phase D (item D5), same planning pipeline
+      as XREPO-016/017/018. `veilgremlin/docs/architecture/interface-contracts.md` moved from
+      v1.4 to v1.9 in roughly seven weeks (2026-07 to 2026-09) across a family of six repos each
+      shipping on its own cadence -- nothing anywhere names how a beta cohort's installed `vg`
+      binary version is kept compatible with whatever custodian/observatory API version happens
+      to be deployed at any given moment, and an incompatible pairing today would fail silently
+      or opaquely rather than with a clear error. Minimum viable scope for beta: `vg` sends its
+      own interface-contract version on enrolment and on every telemetry event; custodian and
+      observatory each reject or warn on an unrecognised major version rather than silently
+      misinterpreting the payload; veil-ecosystem publishes and maintains a compatibility matrix
+      pinning the exact versions a given beta cohort is actually running. Full version
+      negotiation (a component adapting its behavior to an older counterpart) is explicitly
+      deferred past this scope.
+    links:
+      - "veil-ecosystem/docs/beta-implementation-plan.md#phase-d--enrolment-trust-anchors-renewal-lifecycle"
+      - "veilgremlin/docs/architecture/interface-contracts.md"

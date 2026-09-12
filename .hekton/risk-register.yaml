@@ -59,11 +59,21 @@ risks:
     impact: high
     status: open
     owner: hekton
-    mitigation: "Blocked on real device/actor identity work (veilgremlin product-family.md §6); not started."
+    mitigation: "Named as a beta-gating decision (D-BETA-1, docs/beta-implementation-plan.md
+      §3), 2026-09-12: verdict is PARTIALLY BETA-BLOCKING, mitigate + disclose rather than
+      attempt real authentication (which needs OS-level caller attestation, a separate
+      research track). Ship three mechanical mitigations plus a written, signed threat-model
+      disclosure in the beta participation agreement (veilgremlin plan item A5)."
     raised_date: 2026-08-24
-    reviewed_date: 2026-08-24
+    reviewed_date: 2026-09-12
     links:
       - "docs/risks.md"
+      - "docs/beta-implementation-plan.md#3-named-beta-gating-decisions-phase-0--decide-before-building"
+    note: "Disambiguation, 2026-09-12: this ID collides in name only with veilgremlin's own,
+      unrelated RISK-0004 (a false-positive-detector-rate risk in that repo's own
+      docs/risks.md) -- the two registries are independently numbered. The beta-planning
+      pipeline calls this issue F4 or VE-RISK-0004 specifically to avoid the ambiguity;
+      follow that convention in any new cross-referencing text rather than bare 'RISK-0004'."
   - id: RISK-0005
     title: "A component repo's own documentation can itself be stale relative to its code, undetectable except by fresh review"
     category: documentation
