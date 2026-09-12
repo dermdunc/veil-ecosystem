@@ -5,9 +5,21 @@
 **Provenance:** produced by a three-stage pipeline at the user's explicit request: a Fable-model
 draft, an independent adversarial critique (Codex was rate-limited; a fresh-context Claude
 reviewer was substituted, same standard), and an Opus consolidation pass that re-verified the
-contested points directly against repo source before merging both documents. Not yet committed
-to git or reconciled into `.hekton/cross-repo-deps.yaml` — this file is the output for human
-review before any of that happens.
+contested points directly against repo source before merging both documents.
+
+## Progress tracker (keep this current — read this before re-doing any Phase 0 item)
+
+| Item | Status | Evidence |
+|---|---|---|
+| 0.4 Registry hygiene (file XREPO-016..019, correct scopes of 010/011/012/013/015, disambiguate `RISK-0004`, reconcile `prfaq-beta.md`) | **Done, 2026-09-12** | `veil-ecosystem` PR #24, merged. `.hekton/cross-repo-deps.yaml` has 19 items (9 closed, 10 open); `eco_checker.py` clean. |
+| 0.1 Ratify the §1 beta bar; record D-BETA-1..7 with names | **Not started** | — |
+| 0.2 Start IANA PEN registration (external latency) | **Not started** | Human/org action — registering a real IANA Private Enterprise Number, not something an agent session can do directly. See RISK-0012 in `veilgremlin/docs/risks.md`. |
+| 0.2 Start legal/consent drafting + review (D-BETA-2) | **Not started** | Drafting (participation agreement, privacy notice, data-processing description) is agent-doable; the *review* is human/legal and has external latency. |
+| 0.3 Decide hosting/billing target for the beta's own custodian/observatory deployment | **Not started** | Human decision — see RISK-0006 (Fly.io trial lapsed, no funded target today). |
+| Tracks 1-2 (Phase A/B) and Phases C/D/E | **Not started** | Blocked on Phase 0's decisions above, per §5's dependency graph. |
+
+This file is the single source of truth for what's been decided vs. what's still open — a fresh
+session should read this table first, not assume anything from a prior conversation.
 
 ---
 
@@ -139,13 +151,14 @@ Start registration in Phase 0 for latency; enforce the gate at D2/E2.
 ### Phase 0 — Ratify, decide, unblock external latency
 *Repos: veil-ecosystem, veil-custodian, veilgremlin · **2 sessions***
 
-- Ratify §1's beta bar; record D-BETA-1..7 with names against them.
-- Start day one: IANA PEN registration, legal/consent drafting and review.
-- Decide the hosting/billing target for the custodian/observatory beta deployment.
-- Registry hygiene: file XREPO-016/017/018/019 (§6); annotate XREPO-010/011/012/013/015 with
+- ~~Registry hygiene: file XREPO-016/017/018/019 (§6); annotate XREPO-010/011/012/013/015 with
   corrected scopes (§7); disambiguate the two `RISK-0004` IDs; correct `prfaq-beta.md` Q3 item 8
   (the FP fix **is** merged; recall is the live half) and reconcile its Availability/cutline
-  placeholders against this plan.
+  placeholders against this plan.~~ — **done, 2026-09-12, PR #24.** See the Progress tracker
+  above; do not redo this.
+- Ratify §1's beta bar; record D-BETA-1..7 with names against them. **Remaining.**
+- Start day one: IANA PEN registration, legal/consent drafting and review. **Remaining.**
+- Decide the hosting/billing target for the custodian/observatory beta deployment. **Remaining.**
 
 ### Track 1 / Phase A — Data plane to real traffic
 *Repo: veilgremlin · **9-12 sessions** · fully parallel with Track 2*
@@ -290,4 +303,9 @@ RISK-0003 recall measurement.
 12. **Observatory single-threaded `HTTPServer`** added to B5's scope.
 13. **Registry-hygiene fix** — the two colliding `RISK-0004` IDs, disambiguated throughout.
 14. **Kept because it held up under direct source inspection:** Finding B in full, the four custodian bugs + validation gap, the two-track parallel shape, the XREPO-002 route-around, the XREPO-016/017/018 filings, the under-scoped-items list minus XREPO-012, the macOS-only justification, and the Phase 0 → Tracks → C → D → E structure.
-15. **`prfaq-beta.md` reconciliation is Phase 0's job**, answering its own Reconciliation Note's three questions: Q3's gap list (§1, §4 here), Q4's revocation lag (B5 publishes a number), and its Availability/cutline placeholders (§5's estimate, §8's cutline).
+15. **`prfaq-beta.md` reconciliation — done, 2026-09-12, PR #24** (same commit as the registry
+    hygiene above): its Reconciliation Note's three questions are answered in place, not left
+    open — Q3's gap list absorbed this plan's newly-found gaps, Q4's revocation-lag question
+    points at B5's number, and the Availability/cutline placeholders stay deliberate
+    placeholders (sessions, not calendar time, per this plan's own §5) rather than being
+    guessed at.
