@@ -103,7 +103,43 @@ risks:
       stays offline. Independent of any code defect — confirmed via a failed TLS handshake and
       fly status's own error message, 2026-08-30. Still down as of 2026-09-04.
     raised_date: 2026-08-30
-    reviewed_date: 2026-09-04
+    reviewed_date: 2026-09-13
     links:
       - "docs/risks.md"
       - "docs/next-actions.md"
+    note: "Disambiguation, 2026-09-13: distinct from RISK-0007 (hosting/billing target for
+      the beta's own, separate custodian/observatory deployment, closed 2026-09-13 as
+      D-BETA-6 -- Fly.io, new card). This risk stays scoped to veil-demo's own dead
+      deployment specifically and remains open; adding a card to the beta's Fly.io
+      account per D-BETA-6 may make restoring this one trivial too, but that restoration
+      is separate, unauthorized-by-this-decision follow-on work, not done automatically."
+  - id: RISK-0007
+    title: "No hosting/billing target had been decided for the beta's own custodian/observatory deployment"
+    category: operations
+    likelihood: high
+    impact: medium
+    status: closed
+    owner: dermdunc
+    mitigation: >
+      Closed 2026-09-13, same session it was raised: decision recorded as D-BETA-6 (part
+      2) in docs/decisions.md -- Fly.io, with a new credit card on file, is the hosting/
+      billing target for the beta's own custodian/observatory deployment. Filed as a
+      distinct risk id rather than folded into RISK-0006, on the same disambiguation
+      discipline this repo already applied to the RISK-0004 collision: RISK-0006 is
+      registered narrowly to veil-demo's own dead Fly.io deployment and stays that way;
+      this is a different, not-yet-built deployment target that beta-implementation-plan.md
+      §3 (D-BETA-6) had silently cited RISK-0006 for without RISK-0006's own text ever
+      covering it. Actually standing up that deployment (Phase B, items B1/B2) and adding
+      the new card to the Fly.io account are still real follow-on work, not completed by
+      this decision alone.
+    raised_date: 2026-09-13
+    reviewed_date: 2026-09-13
+    closed_date: 2026-09-13
+    links:
+      - "docs/risks.md"
+      - "docs/decisions.md"
+      - "docs/beta-implementation-plan.md#3-named-beta-gating-decisions-phase-0--decide-before-building"
+    note: "Disambiguation, 2026-09-13: distinct from RISK-0006 (veil-demo's own dead Fly.io
+      deployment). Both happen to involve Fly.io and a missing credit card, but are two
+      different deployments -- do not conflate them, the same way RISK-0004/VE-RISK-0004
+      must not be conflated across repos."
