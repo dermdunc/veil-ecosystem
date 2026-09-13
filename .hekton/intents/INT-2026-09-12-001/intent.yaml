@@ -166,7 +166,7 @@ schema_version: "tektograph-1.0"
 intent_id: "INT-2026-09-12-001"
 title: "Phase 0 kickoff: ratify §1's beta bar and D-BETA-1..7 with named owners, draft the legal/consent materials D-BETA-2 needs, and surface (never guess) the hosting/billing decision for the beta's own custodian/observatory deployment"
 kind: decision
-status: accepted
+status: in_progress
 # T3, DEPARTING from the 6/6 (see GROUND: kriterion--human-run-001 is a
 # worktree, not an independent precedent) kind:decision T2 precedent on this
 # machine, with a stated reason per intent-choreography's own guidance that a
@@ -407,3 +407,38 @@ history:
       beta-implementation-plan.md §1's beta bar as written (answer: "Ratify as written")
       -- satisfying this intent's own disproof_criteria #5 (no unapproved status advance)
       and confirmation_criteria #1 (§1 ratified separately from D-BETA-1..7).
+  - status: in_progress
+    date: "2026-09-13"
+    by: "claude (main session, branch agent/claude/beta-phase-0)"
+    evidence: >
+      Mission kickoff, carried across several commits on this branch after acceptance:
+      (1) all seven D-BETA decisions plus the §1 beta-bar ratification recorded in
+      docs/decisions.md, each citing dermdunc as owner and noting the substance was put
+      to the user with a real opportunity to amend (satisfies confirmation_criteria #2);
+      XREPO-014's cross-repo-deps.yaml entry annotated with D-BETA-4's decision
+      (confirmation_criteria #3). (2) The hosting/billing question was asked directly
+      (AskUserQuestion) rather than guessed at -- answer: Fly.io, new card on file.
+      RISK-0007 filed and closed same day, kept distinct from RISK-0006's narrower
+      veil-demo-only scope, matching this repo's RISK-0004 disambiguation precedent
+      (confirmation_criteria #5's registry-hygiene requirement). (3) IANA PEN
+      registration recorded as not started, explicitly external (confirmation_criteria
+      #6). (4) beta-implementation-plan.md's Progress tracker updated to real end-state,
+      including fixing a pre-existing "9 closed" XREPO-deps miscount the Codex critique
+      of this intent's own founding pass had already caught (confirmation_criteria #7).
+      (5) docs/legal/beta-participation-agreement.md, privacy-notice.md, and
+      data-processing-description.md drafted, each opening with a DRAFT/NOT-REVIEWED
+      marker (confirmation_criteria #4). Two doubt-driven-development critique rounds
+      ran against the three legal drafts before this entry: a fresh-context pass found
+      and fixed a "scheduled"/"manual" self-contradiction on revocation-key-refresh
+      cadence and a disclosure gap (the missing-revocation-authority fact was only in
+      the internal doc, not the participant-facing ones); a Codex cross-model pass then
+      found 12 further issues, most severely that all three drafts described unbuilt
+      Phase A/B prerequisite work (the Fly.io deployment, the F4 mitigations, `vg
+      uninstall`) in present tense as if already shipped, and overstated the signing
+      key's non-exportability against what D-BETA-4 actually accepted. All reconciled
+      and fixed directly in the three files -- each now opens with an explicit "NOT
+      READY FOR ENROLMENT/PUBLICATION" notice and distinguishes accepted residual risk
+      from unbuilt prerequisites throughout, rather than presenting the beta as
+      further along than it is. `python3 scripts/eco_checker.py` and
+      `python3 scripts/validate_intents.py --repo-root .` both clean after all of the
+      above.
