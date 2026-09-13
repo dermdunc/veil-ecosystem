@@ -11,12 +11,12 @@ contested points directly against repo source before merging both documents.
 
 | Item | Status | Evidence |
 |---|---|---|
-| 0.4 Registry hygiene (file XREPO-016..019, correct scopes of 010/011/012/013/015, disambiguate `RISK-0004`, reconcile `prfaq-beta.md`) | **Done, 2026-09-12** | `veil-ecosystem` PR #24, merged. `.hekton/cross-repo-deps.yaml` has 19 items (9 closed, 10 open); `eco_checker.py` clean. |
-| 0.1 Ratify the §1 beta bar; record D-BETA-1..7 with names | **Not started** | — |
-| 0.2 Start IANA PEN registration (external latency) | **Not started** | Human/org action — registering a real IANA Private Enterprise Number, not something an agent session can do directly. See RISK-0012 in `veilgremlin/docs/risks.md`. |
-| 0.2 Start legal/consent drafting + review (D-BETA-2) | **Not started** | Drafting (participation agreement, privacy notice, data-processing description) is agent-doable; the *review* is human/legal and has external latency. |
-| 0.3 Decide hosting/billing target for the beta's own custodian/observatory deployment | **Not started** | Human decision — see RISK-0006 (Fly.io trial lapsed, no funded target today). |
-| Tracks 1-2 (Phase A/B) and Phases C/D/E | **Not started** | Blocked on Phase 0's decisions above, per §5's dependency graph. |
+| 0.4 Registry hygiene (file XREPO-016..019, correct scopes of 010/011/012/013/015, disambiguate `RISK-0004`, reconcile `prfaq-beta.md`) | **Done, 2026-09-12** | `veil-ecosystem` PR #24, merged. `.hekton/cross-repo-deps.yaml` has 19 items, **8 closed / 11 open** (corrected 2026-09-13 — a Codex cross-model critique of `INT-2026-09-12-001` found this table's own "9 closed" figure was a miscount); `eco_checker.py` clean. |
+| 0.1 Ratify the §1 beta bar; record D-BETA-1..7 with names | **Done, 2026-09-13** | `docs/decisions.md` rows (beta bar + all seven D-BETA items), each with owner `dermdunc`, each ratified via explicit `AskUserQuestion` with a real opportunity to amend. Recorded as intent `INT-2026-09-12-001` mission work (declared → critiqued via fresh-context Claude + Codex cross-model → accepted). |
+| 0.2 Start IANA PEN registration (external latency) | **Still not started — external human action.** | No artifact this session produced states or implies registration was started. See RISK-0012 in `veilgremlin/docs/risks.md`; D-BETA-7 (`docs/decisions.md`) records the ratified ordering decision, not the registration itself. |
+| 0.2 Start legal/consent drafting + review (D-BETA-2) | **Drafting done, 2026-09-13; review not started.** | `docs/legal/beta-participation-agreement.md`, `privacy-notice.md`, `data-processing-description.md` — all three drafted, each marked DRAFT / NOT LEGALLY REVIEWED, each critiqued (fresh-context + Codex cross-model per `INT-2026-09-12-001`'s confirmation criteria) before being handed over. **The actual legal review is human/external-latency work; do not treat these drafts as usable with real participants yet.** |
+| 0.3 Decide hosting/billing target for the beta's own custodian/observatory deployment | **Done, 2026-09-13.** | `docs/decisions.md` D-BETA-6 (part 2): Fly.io, new credit card on file. `RISK-0007` filed and closed same day (distinct from `RISK-0006`, which stays scoped to veil-demo's own dead deployment). Actually standing up the deployment (Phase B, B1/B2) and adding the card remain real follow-on work. |
+| Tracks 1-2 (Phase A/B) and Phases C/D/E | **Not started** | Phase 0's decisions above are now ratified; this unblocks Phase A/B per §5's dependency graph, but no Track 1/2 work has started. |
 
 This file is the single source of truth for what's been decided vs. what's still open — a fresh
 session should read this table first, not assume anything from a prior conversation.

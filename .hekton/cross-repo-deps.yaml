@@ -534,7 +534,7 @@ deps:
     repos: [veilgremlin]
     status: open
     raised_date: 2026-09-12
-    reviewed_date: 2026-09-12
+    reviewed_date: 2026-09-13
     detail: >
       Filed on XREPO-009's closure (named in that item's original filing as open questions,
       deliberately not resolved by Phase 1), not absorbed into it. Two distinct, still-undecided
@@ -546,8 +546,18 @@ deps:
       (already defined: the seam shadows the keychain, and install-cert refuses to run while it
       is set) -- e.g. whether MDM tooling should be able to set it at all outside a controlled
       support/debug flow.
+
+      **Beta-planning decision recorded (2026-09-13, `docs/beta-implementation-plan.md` §3,
+      `docs/decisions.md`, D-BETA-4):** both questions answered *for beta scope*: the exportable
+      scalar is accepted as-is for beta; the env-var override stays a controlled support/debug
+      flow only, not something MDM tooling sets routinely. This resolves D-BETA-4's own beta-bar
+      requirement but does not close this item -- a durable, non-beta-scoped managed-device
+      policy (e.g. a real MDM integration point, or a decision that beta's answer is also the
+      permanent one) remains undecided and is why this stays open rather than closed.
     links:
       - "veilgremlin/docs/decisions.md#2026-09-11-adr-017"
+      - "veil-ecosystem/docs/decisions.md#2026-09-13"
+      - "veil-ecosystem/docs/beta-implementation-plan.md#3-named-beta-gating-decisions-phase-0--decide-before-building"
 
   - id: XREPO-015
     title: "Plain-HTTP telemetry transport becomes materially more sensitive now that a stable, real device pseudonym reaches veil-observatory organically"
