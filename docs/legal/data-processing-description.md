@@ -4,6 +4,11 @@
 in its current form. Do not treat as a finalized Article 30-style record or DPA schedule until
 qualified legal counsel has reviewed it.**
 
+**This document was drafted by an AI agent (Claude) as an illustrative starting point only.
+It is not legal advice, was not prepared or reviewed by a lawyer, and must not be relied upon
+as an actual processing record until qualified legal counsel has independently drafted or
+reviewed a replacement.**
+
 **Drafted:** 2026-09-13, per `docs/beta-implementation-plan.md` D-BETA-2, as mission work under
 intent `INT-2026-09-12-001`. Companion to `privacy-notice.md` (participant-facing) and
 `beta-participation-agreement.md` — this document is the more technical internal record of

@@ -4,6 +4,11 @@
 counsel has reviewed and approved this document, and confirmed it satisfies applicable law in
 every jurisdiction where beta participants are located.**
 
+**This document was drafted by an AI agent (Claude) as an illustrative starting point only.
+It is not legal advice, was not prepared or reviewed by a lawyer, and must not be published,
+distributed, or relied upon until qualified legal counsel has independently drafted or reviewed
+a replacement.**
+
 **Drafted:** 2026-09-13, per `docs/beta-implementation-plan.md` D-BETA-2, as mission work under
 intent `INT-2026-09-12-001`. Cross-referenced against `docs/prfaq-beta.md` External FAQ Q2/Q5
 and Internal FAQ Q5 (audit-trail field list), and `docs/beta-implementation-plan.md` §2

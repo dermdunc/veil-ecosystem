@@ -3,6 +3,11 @@
 **Status: DRAFT — NOT LEGALLY REVIEWED. Do not send to any design-partner organization or
 participant until qualified legal counsel has reviewed and approved this document.**
 
+**This document was drafted by an AI agent (Claude) as an illustrative starting point only.
+It is not legal advice, was not prepared or reviewed by a lawyer, and must not be used, sent,
+signed, or relied upon for any real participant or organization until qualified legal counsel
+has independently drafted or reviewed a replacement.**
+
 **Drafted:** 2026-09-13, per `docs/beta-implementation-plan.md` D-BETA-2 (legal/consent basis
 for holding real users' bindings and telemetry), as mission work under intent
 `INT-2026-09-12-001`. Cross-referenced against `docs/prfaq-beta.md`'s External FAQ (especially
