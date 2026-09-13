@@ -1,0 +1,393 @@
+# GROUND — real commands/reads run before declaring, 2026-09-12, on branch
+# agent/claude/beta-phase-0:
+#
+#   Read docs/beta-implementation-plan.md in full, starting from its Progress
+#   tracker table -> confirmed item 0.4 (registry hygiene) is Done/merged
+#   (PR #24) and the three remaining Phase 0 items are genuinely
+#   "Not started": 0.1 (ratify §1 beta bar, record D-BETA-1..7 with names),
+#   0.2 (IANA PEN registration + legal/consent drafting), 0.3 (hosting/
+#   billing decision, RISK-0006). Read §1 (beta bar), §3 (all seven D-BETA
+#   decisions' full text), §4 (Phase 0 scope) directly -- this intent's
+#   confirmation/disproof criteria are adapted from that text, not invented.
+#   Read docs/prfaq-beta.md in full -- confirmed already reconciled against
+#   the plan (Reconciliation Note, closed out 2026-09-12), no further
+#   reconciliation work needed as part of this intent.
+#   Read .hekton/cross-repo-deps.yaml in full (19 entries, 8 closed, 11 open --
+#   corrected during critique from a "9 closed" miscount; verified by pairing
+#   every `- id:`/`status:` line directly, not by re-trusting the plan doc's
+#   own "9 closed" claim). Confirmed XREPO-010 through XREPO-019 exist with
+#   the scopes the plan cites. **Corrected during Codex cross-model critique:**
+#   the original claim that "none of them need editing by this intent" was
+#   wrong -- XREPO-014's entire open scope is the two policy questions
+#   D-BETA-4 purports to settle (exportable P-256 scalar acceptance, env-var
+#   override precedence policy), and XREPO-013 already carries a "beta-planning
+#   pipeline" decision annotation for D-BETA-5 that this intent's ratification
+#   makes real. See confirmation_criteria and bindings below -- XREPO-013/014/
+#   002 are now cited explicitly, and updating XREPO-014's registry entry with
+#   the ratified decision is added as follow-on mission work, not silently
+#   dropped.
+#   Read docs/decisions.md in full (ADR log) and the tail of
+#   docs/next-actions.md -- confirmed this repo's established pattern for
+#   recording a ratified decision is a dated Date/Decision/Rationale row,
+#   used for 19+ prior entries including the 2026-09-05 D-BETA-adjacent
+#   XREPO-004 sign-off and three explicit-deferral entries the same day.
+#   Read .hekton/governance.yaml -- required_gates.intent_recorded: true has
+#   been set since this repo's 2026-08-24 scaffold (confirmed via
+#   `git log --follow -p`, one commit, that date -- genuinely predates this
+#   intent and this registry), before any intent registry existed here; this
+#   intent is the first evidence attached to that gate via a machine-checked
+#   registry rather than docs/decisions.md alone. Also read
+#   `approval_policy:` -- `credential_or_secret_changes`, `personal_data_changes`,
+#   and `financial_changes` are all `human_required`. This intent's own subject
+#   matter (D-BETA-4's exportable-private-key policy; D-BETA-2/3's regulated
+#   personal data and legal basis; D-BETA-6's hosting/billing) triggers all
+#   three categories directly -- used below to justify risk_tier.
+#   Read .hekton/risk-register.yaml -- all six entries individually, not just
+#   the two originally cited. RISK-0004 (VE-RISK-0004, self-asserted demask
+#   authorisation) directly maps to D-BETA-1. **Corrected during Codex
+#   cross-model critique:** RISK-0006 as actually registered
+#   ("veil-demo's live deployment is down (Fly.io trial ended, no credit card
+#   on file)") is scoped to veil-demo's own dead Fly.io deployment
+#   specifically -- NOT the beta's own, not-yet-built custodian/observatory
+#   hosting decision D-BETA-6 names. beta-implementation-plan.md §3 itself
+#   cites "RISK-0006: no funded target today" for the custodian/observatory
+#   question without the risk-register entry itself ever being broadened to
+#   say so -- a real, pre-existing registry-hygiene gap this intent inherits
+#   rather than invents, and does not silently paper over (see
+#   confirmation_criteria and follow-on mission work below: either broaden
+#   RISK-0006's registered scope explicitly, the same disambiguation
+#   discipline this repo already applied to the RISK-0004 collision, or raise
+#   a new risk id for the custodian/observatory hosting gap specifically).
+#   RISK-0001 (governance baseline incomplete until first review), RISK-0002
+#   (this document -- the plan's own progress tracker -- can go stale
+#   silently), and RISK-0005 (a component repo's own docs can be stale
+#   relative to its code) are also genuinely relevant, not unrelated as
+#   originally assessed: RISK-0001 because this is the first use of a new
+#   governance mechanism in this repo; RISK-0002 because this intent's own
+#   mission work edits beta-implementation-plan.md's Progress tracker;
+#   RISK-0005 because the legal drafts this intent produces assert several
+#   technical facts about component behavior (on-device key generation,
+#   SQLCipher AES-256, telemetry transport state) that need to be current,
+#   not stale, when someone eventually reads them. All five open risks are
+#   bound below; RISK-0003 (closed) remains correctly excluded.
+#   Ran `find` across every repo in ~/Development/hekton/factory-output and
+#   ~/Development/hekton/labs for a `.hekton/intents/` directory -> none of
+#   the six Veil family repos (veil-ecosystem, veilgremlin, veil-custodian,
+#   veil-enrol, veil-observatory, veil-foundations) or veil-demo has ever
+#   declared an intent. This is the first intent anywhere in this product
+#   family.
+#   Asked the user directly (AskUserQuestion) whether to create a new
+#   .hekton/intents/ registry here (a project-governance decision the
+#   intent-choreography skill's own instructions require asking about
+#   before creating one unasked) rather than assuming -- answer: "Create the
+#   registry now." Then asked which of the two live Hekton intent schemas to
+#   use, since no sibling or validator exists anywhere in this family to
+#   detect one from -- answer: "Tektograph schema (tektograph-1.0)."
+#   Read kriterion/scripts/validate_intents.py and
+#   kriterion/docs/intent-driven-development.md in full as the closest
+#   factory-output-tier sibling precedent (kriterion is the only other
+#   factory-output repo using this schema; every other tektograph-1.0
+#   adopter is a lab). Diffed kriterion's validator against
+#   hekton-assurance-lab's copy -> byte-identical, confirming the
+#   port-verbatim convention this intent's own copy follows. That ported
+#   validator's own docstring references `engine/schema.md` and
+#   `scripts/verify-lab.sh`, neither of which exists in this repo -- a
+#   deliberate, disclosed characteristic of the port-verbatim convention
+#   (kriterion's own copy carries the same lab-specific prose unmodified),
+#   not an oversight; docs/intent-driven-development.md says so explicitly.
+#   Grepped `^kind:`/`^risk_tier:` and `owner.accountable_human` across every
+#   intent.yaml on this machine (20 pre-existing files across 8 registries;
+#   21 files across 9 registries including this one, once written).
+#   **Corrected during Codex cross-model critique, two real defects:**
+#   (1) `kriterion--human-run-001` is not an independent registry -- confirmed
+#   via `git -C kriterion worktree list`: it is a linked git worktree of
+#   `kriterion` sharing the same `.git`, holding byte-identical intent
+#   content on a different branch. The genuine kind:decision precedent is 6
+#   distinct decisions across 5 distinct projects (kriterion counted once,
+#   not twice), not "7 of 7" as originally stated -- still unanimously T2
+#   among those 6, and among all 7 physical files too, so the tier-precedent
+#   *direction* doesn't flip, but the original framing overclaimed
+#   independent precedent-setting projects. (2) The owner-identity grounding
+#   originally claimed "every other machine intent uses coderturtle" --
+#   grepped `owner.accountable_human` across all 20 pre-existing files
+#   directly and found: 5 use `coderturtle`, 8 use `Derm`, 7 use `derm`. The
+#   actual machine-wide majority (15 of 20, 75%) is a "Derm"/"derm" variant,
+#   not `coderturtle` at all. This does not weaken the `dermdunc` choice --
+#   if anything it strengthens it, since `dermdunc` (this repo's actual
+#   GitHub identity) sits far closer to the dominant "Derm"/"derm" convention
+#   than the minority `coderturtle` form the original (wrong) grounding
+#   treated as universal. Also checked review_by offsets on decision-kind
+#   siblings -> ~28-30 days from declaration date is the consistent pattern
+#   across all 7 physical kind:decision files (2026-09-05 -> 2026-10-05 x4;
+#   2026-09-03 -> 2026-10-03; 2026-09-04 -> 2026-10-04; 2026-09-11 ->
+#   2026-10-11, the 7th data point, fitting the same pattern). Separately,
+#   re-checked hekton-loops-lab's own intent count for
+#   docs/intent-driven-development.md -- corrected from a stated "7" to the
+#   actual 6 (`ls .hekton/intents/` there lists 7 entries, but one,
+#   `2026-09-03-e8-evidence-manifest.md`, is a manifest file, not an
+#   INT-*/intent.yaml directory).
+#   Ran `ls .hekton/intents/ | grep 2026-09-12` before writing (directory did
+#   not exist yet -- created it fresh) to confirm NNN=001 is free; no
+#   collision possible since this is the first intent in this registry.
+#   Checked owner identity directly rather than copying sibling convention:
+#   every project.yaml across all seven Veil-family repos names
+#   `github_account: dermdunc` and remote `git@github.com:dermdunc/<repo>`
+#   (confirmed in all seven, including veil-observatory's standalone checkout
+#   outside ~/Development/hekton). The user was asked directly which identity
+#   belongs in `owner.accountable_human` -- answer: "dermdunc, since that's
+#   the actual GitHub identity." Per the corrected grounding two paragraphs
+#   above, this is not actually a departure from machine-wide convention (the
+#   majority already uses a "Derm"/"derm" form) -- it is a deliberate,
+#   asked-and-answered choice for a name closer to that majority than this
+#   repo's own git commit-author string would have supplied by default.
+#   **PII handling note, added during Codex cross-model critique:** this
+#   repo is `privacy_boundary: public` (project.yaml). An earlier draft of
+#   this GROUND section and the critiqued history entry below quoted the
+#   actual email addresses attached to the `coderturtle` and `dermdunc` git
+#   identities directly. Those were removed before this file's first commit
+#   -- this repo has its own precedent (docs/decisions.md, 2026-08-29, "Fixed
+#   a real secret leak in veil-foundations... named a real AWS account ID")
+#   for treating exactly this class of leak seriously and fixing it
+#   immediately rather than deferring it. Only the identity *names* (which
+#   are already public, as GitHub account handles) are retained below.
+#
+# FIT — no validator or sibling existed in THIS repo's own (nonexistent
+# until now) registry, so per intent-choreography's authority-chain step 4
+# the schema choice was put to the user directly rather than assumed (see
+# GROUND above). Shape and convention below follow kriterion's own two
+# intents as the nearest factory-output-tier precedent, since no
+# tektograph-1.0 kind:decision intent exists yet in a Veil-family registry
+# specifically. bindings.adrs is left empty per kriterion's own documented
+# convention for repos whose decisions.md has no ADR-id scheme of its own
+# (veil-ecosystem's docs/decisions.md is a plain dated log, not
+# ADR-lettered) -- the relevant decisions are cited by date/row in
+# confirmation evidence instead, once written.
+schema_version: "tektograph-1.0"
+intent_id: "INT-2026-09-12-001"
+title: "Phase 0 kickoff: ratify §1's beta bar and D-BETA-1..7 with named owners, draft the legal/consent materials D-BETA-2 needs, and surface (never guess) the hosting/billing decision for the beta's own custodian/observatory deployment"
+kind: decision
+status: critiqued
+# T3, DEPARTING from the 6/6 (see GROUND: kriterion--human-run-001 is a
+# worktree, not an independent precedent) kind:decision T2 precedent on this
+# machine, with a stated reason per intent-choreography's own guidance that a
+# departure must be explained, not silent: this intent's substance directly
+# triggers three of .hekton/governance.yaml's own `human_required` categories
+# -- `credential_or_secret_changes` (D-BETA-4's exportable-private-key
+# policy), `personal_data_changes` (D-BETA-2/3's regulated personal data and
+# legal basis for real users' bindings/telemetry), and `financial_changes`
+# (D-BETA-6's hosting/billing question) -- none of which any prior
+# kind:decision sibling on this machine touched. No local document had
+# defined the T2/T3 semantic boundary before this intent (a real gap Codex's
+# cross-model critique named); this file and docs/intent-driven-development.md
+# now use governance.yaml's approval_policy categories as that boundary going
+# forward: a kind:decision intent triggering one or more `human_required`
+# category is T3, not T2, regardless of what kind alone would suggest.
+risk_tier: T3
+iteration: 0
+review_by: "2026-10-12"
+owner:
+  accountable_human: dermdunc
+  responsible_agent: "claude/agent/claude/beta-phase-0"
+hypothesis: >
+  We believe that ratifying §1's beta bar and D-BETA-1 through D-BETA-7
+  (including their linked cross-repo items XREPO-002, XREPO-013, XREPO-014)
+  as explicit, individually-named human decisions in docs/decisions.md --
+  with the decision *substance*, not merely its owner's name, put to the user
+  with a real opportunity to amend -- drafting (but not finalising) the three
+  legal/consent documents D-BETA-2 requires, correctly flagging IANA PEN
+  registration as an external human action rather than attempting it, and
+  surfacing the RISK-0006-adjacent hosting/billing question to the user
+  rather than guessing at it, closes beta-implementation-plan.md's two
+  remaining "Not started" Phase 0 items (0.1 and the drafting half of 0.2)
+  without this session inventing, on the user's behalf, any decision, named
+  owner, or hosting/billing commitment that is genuinely the user's alone to
+  make.
+confirmation_criteria:
+  - "§1's beta bar (the 5-condition table) is explicitly put to the user for ratification as its own question, separate from and in addition to D-BETA-1..7 -- plan item 0.1 names both, and ratifying only the seven named decisions without also ratifying the beta bar itself would leave half of item 0.1 done by assumption, not confirmation."
+  - "Each of D-BETA-1 through D-BETA-7 gets a dated row in docs/decisions.md citing an explicit named decision owner AND recording that the decision's actual substance (not just who owns it) was presented to the user with a real opportunity to amend before being ratified as written -- guarding against ratifying a preselected answer from beta-implementation-plan.md as if it were independently decided. Owner names must come from direct confirmation in this session, never assumed from git config or project.yaml's generic 'owner: hekton' field."
+  - "D-BETA-4/XREPO-014, D-BETA-5/XREPO-013, and D-BETA-6/XREPO-002 are each cited explicitly by XREPO id in the decisions.md rows that ratify them, and XREPO-014's cross-repo-deps.yaml entry gets a 'beta-planning pipeline: decision recorded' annotation matching the convention XREPO-010/011/012/013/015 already carry -- this intent's own ratification is not left invisible to the registry it resolves open questions in."
+  - "docs/legal/beta-participation-agreement.md, docs/legal/privacy-notice.md, and docs/legal/data-processing-description.md all exist, each opening with an explicit DRAFT -- NOT LEGALLY REVIEWED marker, and each has been through at least one doubt-driven-development critique pass (fresh-context, cross-model where Codex is available) before being handed to the user."
+  - "The hosting/billing decision for D-BETA-6's custodian/observatory deployment is recorded in docs/decisions.md reflecting the user's own actual answer to a direct question -- or explicitly left open with that fact stated plainly -- never a guessed default. The pre-existing RISK-0006/D-BETA-6 scope mismatch (RISK-0006 as registered covers only veil-demo's dead Fly.io deployment, not this question) is either fixed by broadening RISK-0006's registered scope explicitly or by raising a distinct risk id for the custodian/observatory hosting gap -- not left conflated."
+  - "IANA PEN registration (RISK-0012, D-BETA-7) is recorded as not started and explicitly named as an external human action this session cannot complete -- no artifact this session produces states or implies this session started, progressed, or completed registration."
+  - "beta-implementation-plan.md's Progress tracker table is updated to reflect this session's real end-state (0.1's actual status; 0.2 split into its drafted vs. still-external-latency halves; 0.3's actual status) rather than left showing three stale 'Not started' rows if any of them genuinely moved."
+disproof_criteria:
+  - "Any D-BETA-N row is added to docs/decisions.md with its owner field left blank, marked 'TBD', or silently defaulted to a name the user did not actually confirm in this session -- with the confirming exchange's substance (not just a pointer to 'this session') recorded in the row or this intent's own accepted/mission history, so a reviewer without transcript access can still check it."
+  - "A legal draft (participation agreement, privacy notice, or data-processing description) is shown, sent, or otherwise made available to an actual design-partner organization or participant before legal counsel has reviewed and signed off on it -- a materially worse failure than a merely-missing DRAFT marker, and the one this intent's drafting work actually exists to prevent."
+  - "The hosting/billing decision is recorded in docs/decisions.md as decided without the actual question-and-answer substance recorded alongside it (in the row itself or this intent's mission-history evidence) -- i.e. this session guessed and then only asserted 'the user was asked' with nothing a later reader could check."
+  - "Any commit, PR description, or doc edit in this session falsely states or implies that this session itself started, progressed, or completed IANA PEN registration -- an accurate record of registration genuinely being started by the human outside this session's own actions does not fire this criterion; a false or exaggerated claim about what this session did does."
+  - "This intent's own status is advanced to accepted without an explicit AskUserQuestion answered by the user in this session, with that answer's substance quoted in the accepted history entry (bundling this acceptance with the beta-bar ratification's own AskUserQuestion answers would also fire this criterion, per the T3 named-per-intent-approval rule) -- this criterion tests the same laundering risk named in the hypothesis (inventing a decision on the user's behalf), applied to the intent's own acceptance rather than to a D-BETA item, so it is in-scope for a kind:decision intent about decision-recording process, not an unrelated bureaucratic check."
+bindings:
+  mission_manifests: []
+  adrs: []
+  risks:
+    - "RISK-0001"
+    - "RISK-0002"
+    - "RISK-0004"
+    - "RISK-0005"
+    - "RISK-0006"
+  prs: []
+history:
+  - status: declared
+    date: "2026-09-12"
+    by: "claude (main session, branch agent/claude/beta-phase-0)"
+    evidence: >
+      This file. Real grounding performed before declaring, cited in full in
+      the GROUND comment above: read beta-implementation-plan.md's Progress
+      tracker and §§1/3/4 in full, prfaq-beta.md's Reconciliation Note,
+      cross-repo-deps.yaml in full, docs/decisions.md and next-actions.md's
+      tail, governance.yaml, risk-register.yaml (all six entries, two bound
+      as relevant at declaration time); searched every repo in this product
+      family plus every lab/factory-output repo on this machine for an
+      existing .hekton/intents/ registry (none found in the Veil family --
+      this is its first intent anywhere); asked the user directly, via
+      AskUserQuestion, both whether to create this registry at all and
+      which of the two live schemas to use, rather than assuming either;
+      read kriterion's validator and operating doc as the nearest
+      factory-output-tier sibling precedent and diffed the validator against
+      a second lab's copy to confirm the port-verbatim convention; grepped
+      every live intent.yaml on the machine for kind:decision tier precedent
+      and review_by offset precedent before setting this file's own
+      risk_tier and review_by (both later corrected -- see critiqued entry).
+  - status: critiqued
+    date: "2026-09-12"
+    by: "claude (fresh-context critique subagent, refute-first pass)"
+    evidence: >
+      Independently re-verified, from a fresh context, every grounding claim in the
+      GROUND comment against live repo state rather than trusting the comment's text:
+      read beta-implementation-plan.md's Progress tracker table and §§1/3/4 directly
+      (Progress tracker row text, all seven D-BETA decisions' full text, and Phase 0
+      scope all matched verbatim); read prfaq-beta.md's Reconciliation Note in full
+      (matches: three open questions answered, seven gaps named, nothing left standing);
+      read .hekton/governance.yaml and confirmed via `git log --follow -p` that
+      `required_gates.intent_recorded: true` was set in this file's one and only commit,
+      2026-08-24, genuinely predating this intent and this registry; read all six
+      risk-register.yaml entries individually (not just the two cited) and confirmed
+      RISK-0001/0002/0003/0005 are genuinely unrelated to this intent's subject matter
+      (governance-baseline, doc-staleness x2, and a closed signing risk, respectively)
+      and RISK-0004/RISK-0006 are genuinely the complete relevant set (both of these
+      last two claims were later revised by the Codex cross-model pass below -- see
+      ADDENDUM); read docs/decisions.md in full and confirmed its dated
+      Date/Decision/Rationale row convention with no ADR-lettering scheme of its own;
+      ran `find` across all six sibling Veil-family repos plus veil-demo and confirmed
+      no `.hekton/intents/` directory exists in any of them.
+
+      Independently re-verified the sibling-precedent claims rather than trusting the
+      file's numbers: grepped every intent.yaml on this machine myself and found two
+      real miscounts, both fixed in place above: `.hekton/cross-repo-deps.yaml` has 8
+      closed / 11 open (19 total), not "9 closed" as originally stated; and the
+      machine-wide intent.yaml grep found 20 files across 8 registries, not "17 files".
+      Also diffed kriterion/scripts/validate_intents.py against this repo's copy and
+      against hekton-assurance-lab's copy -- byte-identical in both cases, confirming
+      the port-verbatim claim.
+
+      Found and fixed the owner-identity "every repo" overclaim regarding git commit
+      author (six of seven Veil-family repos use `coderturtle`, veil-observatory uses
+      `dermdunc`) -- this specific finding was later superseded by a more consequential
+      one in the Codex ADDENDUM below (the *machine-wide intent* convention, as opposed
+      to Veil-family git config, is majority "Derm"/"derm", not `coderturtle` at all).
+
+      Attacked the disproof_criteria directly at the time and found none were mirror-
+      negations or already trivially decided; two of the five were subsequently
+      reworded anyway per the Codex ADDENDUM's sharper distinctions (see below).
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this pass's fixes:
+      exited 0 in isolation. Top-level `status:` was deliberately left at `declared`
+      pending the cross-model pass below, which the validator (correctly) flagged as a
+      transient mismatch once this entry existed without a matching top-level `status`
+      update -- resolved by setting `status: critiqued` only after both passes'
+      fixes landed (see the final line of this entry).
+
+      ADDENDUM 2026-09-13 (Codex cross-model pass, doubt-driven-development mechanism,
+      `codex exec --sandbox read-only -C . -`, explicit per-invocation user
+      authorization this session): returned 13 findings. Reconciled against the
+      artifact and live repo state (not taken on Codex's word), precedence order per
+      doubt-driven-development's RECONCILE step:
+
+      VALID + ACTIONABLE, fixed in this file: (1) top-level `status` vs. history-tail
+      mismatch -- real, and the reason it was deliberately transient; now resolved by
+      setting `status: critiqued` in the same edit that closes this addendum.
+      (2) docs/intent-driven-development.md claimed the practice "operative from
+      2026-09-12" before this founding intent was accepted -- reworded to a
+      pending-acceptance framing, to be firmed up once acceptance actually happens.
+      (3) D-BETA-4/5/6 touch XREPO-014/013/002 without citing them, violating this
+      repo's own just-written citation convention -- fixed: confirmation_criteria now
+      names all three explicitly, and updating XREPO-014's registry entry is added as
+      mission follow-on work. (4) confirmation_criteria originally required only the
+      *owner's name* be confirmed, not the decision's *substance* -- an agent could in
+      principle satisfy it by copying the plan's prewritten conclusions and asking only
+      "who owns this," which the hypothesis's "without inventing any decision" clause
+      forbids -- fixed: confirmation_criteria now requires the substance be presented
+      with a real opportunity to amend, and a new criterion requires §1's beta bar
+      itself (not just D-BETA-1..7) be separately put to the user, since plan item 0.1
+      names both and only the latter had been asked in this session so far.
+      (5) disproof_criteria #2 (legal draft marker) and #4 (PEN registration) were
+      reworded: #2 now names a materially worse, genuinely distinct failure (a draft
+      reaching an actual participant before legal sign-off) rather than the bare
+      negation of confirmation criterion 2; #4 now excludes the case where the human
+      genuinely does start PEN registration outside this session and the record
+      accurately reflects that, firing only on a false or exaggerated session claim.
+      (6) risk_tier T2->T3: governance.yaml's `approval_policy` marks
+      `credential_or_secret_changes`, `personal_data_changes`, and `financial_changes`
+      as `human_required`; this intent's D-BETA-4/2-3/6 trigger all three directly, a
+      materially different profile than any prior kind:decision sibling -- a real,
+      stated reason to depart from precedent, not a cargo-culted default. The tier
+      precedent count itself was also inflated: `kriterion--human-run-001` is a linked
+      git worktree of `kriterion` (confirmed via `git worktree list`, same `.git`), not
+      an independent project decision -- the genuine precedent is 6 distinct decisions
+      across 5 projects, still unanimously T2, but "7 of 7 independent precedents" was
+      wrong framing. (7) bindings.risks was incomplete and one mapping overclaimed:
+      RISK-0001 (first use of this governance mechanism), RISK-0002 (this intent's own
+      mission work edits the plan document RISK-0002 itself warns can go stale), and
+      RISK-0005 (the legal drafts assert technical facts about component behavior that
+      need to stay current) are now bound alongside RISK-0004/0006; RISK-0006 as
+      actually registered is scoped to veil-demo's dead Fly.io deployment specifically,
+      not the beta's own not-yet-built custodian/observatory hosting question --
+      beta-implementation-plan.md §3 itself silently overloads RISK-0006 to cover both,
+      a pre-existing registry-hygiene gap this intent now names explicitly rather than
+      inheriting silently (confirmation_criteria requires it be fixed, not glossed
+      over). (8) the owner-identity grounding's "every other machine intent uses
+      coderturtle" claim was flatly wrong -- grepped all 20 pre-existing
+      `owner.accountable_human` values directly: 5 `coderturtle`, 8 `Derm`, 7 `derm`.
+      The actual majority (15/20) is a "Derm"/"derm" form; `dermdunc` sits closer to
+      that majority than `coderturtle` does, which if anything strengthens rather than
+      undermines the user's chosen identity. (9) an internal "7th" vs "8th"
+      inconsistency in review_by-offset data-point counting, and a "20 files" count
+      that didn't disclose whether it included this file itself -- both reworded above
+      for clarity (7 physical kind:decision files total; 20 pre-existing / 21 including
+      this one). (10) docs/intent-driven-development.md's hekton-loops-lab count (7)
+      was wrong -- live state is 6 INT-* directories plus one non-intent manifest file;
+      fixed in that doc directly. (11) a real, serious finding: the GROUND comment and
+      this history entry originally quoted real personal email addresses attached to
+      the `coderturtle`/`dermdunc` git identities, in a repo whose `project.yaml` states
+      `privacy_boundary: public` -- removed immediately, consistent with this repo's own
+      2026-08-29 precedent for treating an incidentally-found PII/secret leak as a
+      same-session fix, not a deferred one.
+
+      VALID TRADE-OFF, documented rather than changed: the validator's ported docstring
+      references `engine/schema.md`/`scripts/verify-lab.sh`, neither of which exists in
+      this repo -- Codex is right that this is stale, lab-specific prose, but keeping it
+      byte-identical to the source (rather than editing per-repo) is this family's own
+      established convention (kriterion's copy carries the same text), now stated
+      explicitly in docs/intent-driven-development.md rather than left to look like an
+      oversight. Also: the "append-only history is unverifiable pre-commit" observation
+      is accurate but not a structural defect -- append-only applies to the `history:`
+      list's meaning once entries are real decisions, not to a not-yet-committed file
+      being drafted; this file is committed to git promptly after this critique closes,
+      so the claim becomes independently checkable via `git log` from that point on.
+
+      NOISE / RECONCILED-AS-CORRECT-AS-IS: disproof_criteria #3 (hosting) and #5
+      (acceptance approval) are not mirror-negations on closer reading -- #3 requires
+      the actual question-and-answer substance be recorded, a distinct and stronger
+      condition than "was asked at all"; #5 tests the same on-the-user's-behalf
+      laundering risk the hypothesis names, applied reflexively to this intent's own
+      acceptance, which is squarely in-scope for a kind:decision intent whose subject
+      is decision-recording process itself, not an unrelated procedural check. The
+      "ratifying preselected answers" concern (finding 11 in Codex's own numbering) is
+      real as a philosophical point but not a defect: this session's AskUserQuestion
+      literally offered "amend one or more first" as an alternative to "ratify all seven
+      as written," and the user chose ratification -- that is a genuine decision event
+      (accept vs. amend), not a rubber stamp, and confirmation_criteria now requires the
+      row-level record show that choice was actually offered, not just its outcome.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after all fixes above
+      (including setting `status: critiqued` to match this entry's own tail): exits 0.
