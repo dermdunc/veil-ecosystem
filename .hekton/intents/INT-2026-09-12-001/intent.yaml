@@ -166,7 +166,7 @@ schema_version: "tektograph-1.0"
 intent_id: "INT-2026-09-12-001"
 title: "Phase 0 kickoff: ratify §1's beta bar and D-BETA-1..7 with named owners, draft the legal/consent materials D-BETA-2 needs, and surface (never guess) the hosting/billing decision for the beta's own custodian/observatory deployment"
 kind: decision
-status: critiqued
+status: accepted
 # T3, DEPARTING from the 6/6 (see GROUND: kriterion--human-run-001 is a
 # worktree, not an independent precedent) kind:decision T2 precedent on this
 # machine, with a stated reason per intent-choreography's own guidance that a
@@ -391,3 +391,19 @@ history:
 
       Ran `python3 scripts/validate_intents.py --repo-root .` after all fixes above
       (including setting `status: critiqued` to match this entry's own tail): exits 0.
+  - status: accepted
+    date: "2026-09-13"
+    by: "dermdunc (via AskUserQuestion, main session)"
+    evidence: >
+      Explicit per-intent AskUserQuestion, asked after both the fresh-context Claude
+      critique and the Codex cross-model critique, with both passes' fixes restated in
+      the question itself (3 fresh-context fixes; 13 Codex findings reconciled --
+      PII removal, T2->T3 tier bump with stated reason, owner-precedent correction,
+      XREPO-013/014/002 citations, tightened confirmation/disproof criteria, expanded
+      risk bindings, and the RISK-0006 scope-mismatch disclosure, among others -- so
+      acceptance is recorded against the fully reconciled file, not the original draft).
+      Answer: "Accept (Recommended)". Asked as its own separate question in the same
+      tool call as, but not bundled with, a second question ratifying
+      beta-implementation-plan.md §1's beta bar as written (answer: "Ratify as written")
+      -- satisfying this intent's own disproof_criteria #5 (no unapproved status advance)
+      and confirmation_criteria #1 (§1 ratified separately from D-BETA-1..7).

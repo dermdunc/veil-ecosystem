@@ -1,8 +1,7 @@
 # Intent-Driven Development in Veil Ecosystem — Operating Definition
 
-**Status:** adoption proposed 2026-09-12, pending this practice's own founding intent
-(`INT-2026-09-12-001`) reaching `accepted` — this line is updated to "operative from
-<date>" once that acceptance actually happens, not before. Adopted `tektograph-1.0` on the
+**Status:** operative from 2026-09-13 (`INT-2026-09-12-001`, this practice's own founding
+intent in this repo, accepted that date). Adopted `tektograph-1.0` on the
 explicit instruction of the project owner (dermdunc — this repo's actual GitHub identity
 across all seven Veil-family repos, confirmed directly rather than assumed from any
 sibling repo's own git-config convention), given via an `AskUserQuestion` choice in the
