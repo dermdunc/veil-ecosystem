@@ -141,7 +141,7 @@ schema_version: "tektograph-1.0"
 intent_id: "INT-2026-09-13-001"
 title: "A2: real TLS client + Anthropic API-key mode in veilgremlin's vg-proxy upstream forwarder — Track 1's first beta-condition-1 build item"
 kind: feature
-status: in_progress
+status: technically_confirmed
 # T3 — a novel, case-specific classification by analogy, NOT a "departure from sibling
 # precedent" (Codex cross-model critique, finding 7, corrected this framing: there is
 # no `kind: feature` sibling in this registry to depart FROM — calling this a departure
@@ -211,7 +211,11 @@ bindings:
   risks:
     - "RISK-0004"
     - "RISK-0005"
-  prs: []
+    - "RISK-0008" # veil-ecosystem's own risk, filed 2026-09-14 for the claude-CLI billing-header
+                  # finding this mission's live-run proof surfaced and then closed same day
+  prs:
+    - "veilgremlin#73"
+    - "veil-ecosystem#27"
 history:
   - status: declared
     date: "2026-09-13"
@@ -568,3 +572,47 @@ history:
       streaming vs. non-streaming demask path on the upstream response's own
       content-type header, and re-running scripts/a2-live-proof.sh against the
       real claude CLI to confirm the new confirmation criterion this amendment adds.
+  - status: technically_confirmed
+    date: "2026-09-14"
+    by: "claude (main session, REV-0002 second-pass review by a fresh-context subagent)"
+    evidence: >
+      Mission work landed: the SSE demask path, mask_request.rs's stream:true removal, and
+      the TLS/certificate-validation work all built, tested, and committed to veilgremlin
+      (commit 7c0f3ac, PR veilgremlin#73). Running the actual live-run proof
+      (scripts/a2-live-proof.sh) against the real, unmodified claude CLI then found a real,
+      external blocker: the CLI's own system prompt embeds
+      x-anthropic-billing-header: [REDACTED:SECRET] whenever ANTHROPIC_BASE_URL is
+      non-default, which the real Anthropic API rejects outright -- filed as RISK-0014
+      (veilgremlin) and RISK-0008 (this repo). At the user's explicit direction ("let's go
+      with the codex approach"), asked Codex for an independent architectural opinion on the
+      broader "sit in front of multiple harnesses" question this blocker raised -- Codex's
+      answer named a concrete, cheap experiment (Anthropic's own documented
+      CLAUDE_CODE_ATTRIBUTION_HEADER=0 gateway-compatibility setting) before recommending any
+      architecture change. veilgremlin's own `vg run` already injected that exact variable,
+      unexercised in this mission's own proof until tested directly -- set it on the proof's
+      own invocation and it worked: scripts/a2-live-proof.sh now passes end to end against
+      the real CLI (real TLS, real streaming, real masking/demasking, real subscription
+      auth). RISK-0014/RISK-0008 both closed same day.
+
+      Per intent-choreography's own "Two-Pass Discipline," ran a second, fresh-context
+      critique pass (REV-0002, .hekton/review-log.yaml) against the ACTUAL SHIPPED
+      IMPLEMENTATION -- not the intent text a second time -- before promoting this status.
+      That pass independently re-ran every verification command for real (not from
+      transcript/cache): cargo build/clippy/fmt/test --locked, cargo deny check, cargo
+      audit, all clean; and re-ran scripts/a2-live-proof.sh itself for real against the real
+      Anthropic API, confirming the pass. It attacked the TLS/SSE code directly (dead-code
+      branches, SSRF/host-injection surface, credential leakage in error Display impls,
+      mutex-guarded binding-store races) and found nothing exploitable. It found one real,
+      non-blocking gap: docs/session-log.md and the existing build-log entry in veilgremlin
+      were stale, still narrating the pre-fix blocked state -- fixed in place (a new
+      session-log entry and a new build-log entry,
+      docs/build-log/2026-09-14-the-fix-was-already-in-the-repo.md). It also checked and
+      classified as non-blocking: the kickoff approval named "hyper-rustls + rustls" but the
+      shipped code uses raw rustls/tokio-rustls directly (disclosed in upstream.rs's own doc
+      comment, stays within the approved rustls family -- an imprecise crate name in the
+      approval record, not an unapproved dependency). No disproof_criteria fired. Verdict:
+      genuinely ready for technically_confirmed.
+
+      bindings.prs updated to cite both open PRs (veilgremlin#73, veil-ecosystem#27) and
+      bindings.risks to include this repo's own RISK-0008. Neither PR is merged yet --
+      provisionally_confirmed is a separate, later transition tied to that event.

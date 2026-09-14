@@ -15,3 +15,17 @@ reviews:
     findings: []
     follow_ups:
       - "Run scripts/governance-check.sh after first material change."
+
+  - id: REV-0002
+    date: 2026-09-14
+    reviewer: "claude (fresh-context subagent, refute-first second pass, intent-choreography's Two-Pass Discipline)"
+    review_type: mission_closure
+    scope:
+      - "veilgremlin agent/claude/a2-real-tls-client (commit 7c0f3ac + uncommitted CLAUDE_CODE_ATTRIBUTION_HEADER=0 fix)"
+      - ".hekton/intents/INT-2026-09-13-001/intent.yaml"
+    result: no_blocking_findings
+    findings:
+      - "docs/session-log.md and the existing build-log entry were stale, still narrating the pre-fix blocked state with no entry for the RISK-0014 resolution -- fixed in place (new session-log entry, new build-log entry docs/build-log/2026-09-14-the-fix-was-already-in-the-repo.md)."
+      - "Kickoff approval named 'hyper-rustls + rustls'; shipped code uses raw rustls/tokio-rustls directly (disclosed in upstream.rs's own doc comment, stays within the approved rustls family) -- an imprecise crate name in the approval record, not an unapproved dependency; no fix needed."
+    follow_ups:
+      - "None outstanding for this mission. The broader 'sit in front of multiple harnesses' architecture question (Codex's own independent recommendation) is real, unstarted follow-on design work for a later mission, not this one."
