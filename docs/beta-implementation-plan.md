@@ -17,6 +17,7 @@ contested points directly against repo source before merging both documents.
 | 0.2 Start legal/consent drafting + review (D-BETA-2) | **Drafting done, 2026-09-13; review not started.** | `docs/legal/beta-participation-agreement.md`, `privacy-notice.md`, `data-processing-description.md` — all three drafted, each marked DRAFT / NOT LEGALLY REVIEWED, each critiqued (fresh-context + Codex cross-model per `INT-2026-09-12-001`'s confirmation criteria) before being handed over. **The actual legal review is human/external-latency work; do not treat these drafts as usable with real participants yet.** |
 | 0.3 Decide hosting/billing target for the beta's own custodian/observatory deployment | **Done, 2026-09-13.** | `docs/decisions.md` D-BETA-6 (part 2): Fly.io, new credit card on file. `RISK-0007` filed and closed same day (distinct from `RISK-0006`, which stays scoped to veil-demo's own dead deployment). Actually standing up the deployment (Phase B, B1/B2) and adding the card remain real follow-on work. |
 | Tracks 1-2 (Phase A/B) and Phases C/D/E | **Not started** | Phase 0's decisions above are now ratified; this unblocks Phase A/B per §5's dependency graph, but no Track 1/2 work has started. |
+| Track H (veilgremlin multi-harness proxy plan — Codex support) | **Plan merged 2026-09-14** (veilgremlin PR #74). **D-BETA-8 ratified 2026-09-14: condition 1 now requires Codex parity (Track H's H0-H4), not Claude-only** — reopens the 2026-09-13 beta-bar ratification. H0 is blocked on A3, which has not landed. H2b/H2c have no blockers and are scoped to start immediately; H1 is scoped to start once F15 (fixture-governance policy) is settled — decided as option (b), synthetic-seeded-only fixtures, never committed raw. | `docs/decisions.md` 2026-09-14 D-BETA-8 entry; `veilgremlin/docs/architecture/multi-harness-proxy-plan.md` §4/§7. |
 
 This file is the single source of truth for what's been decided vs. what's still open — a fresh
 session should read this table first, not assume anything from a prior conversation.
@@ -65,7 +66,7 @@ gaps are enumerated and accepted **in writing**, not latent.
 
 | # | Condition | Gradable when |
 |---|---|---|
-| 1 | **Masking data plane works for real traffic** — real Claude Code / Anthropic API, real TLS upstream, streaming included, running as a real daemon | M5, M6, A3 daemon bootstrap done; recall measured against RISK-0003's own gates (A7); F4 mitigations shipped and the residual disclosed in writing (A5) |
+| 1 | **Masking data plane works for real traffic, for both supported harnesses** — real Claude Code / Anthropic API **and** real Codex / OpenAI API, real TLS upstream, streaming included, running as a real daemon. **Widened 2026-09-14 (D-BETA-8) from Claude-only to require Codex parity** — see `docs/decisions.md`. | Claude side: M5, M6, A3 daemon bootstrap done; recall measured against RISK-0003's own gates (A7); F4 mitigations shipped and the residual disclosed in writing (A5). Codex side (new, per veilgremlin Track H, `docs/architecture/multi-harness-proxy-plan.md` §4): H0 (production launch path, needs A3) through H4 (Codex live proof) all done; H5 (CONNECT/process-scoped-CA transport) only if H1's spike verdict forces it. |
 | 2 | **Install without a compiler** — signed, notarized, versioned `vg` binary, macOS only, tested upgrade path | E1 |
 | 3 | **Enrolment at a distance** — device `request-csr`+`install-cert`, operator-side `veil-enrol` against a deployed, really-authenticated custodian | B1, B2, D2 |
 | 4 | **Telemetry trustworthy without a human in the loop** — signed events over TLS, hosted observatory, real `device_ref` reaching `accepted`, `verify-signing-keys` on a schedule, revocation within a stated window | B5, C1, C2 |
@@ -229,17 +230,37 @@ Phase 0 (2)
       ├─ C1b(0.5-1), C2(1-2)   [needs B1]
       └─ Phase D (5-9)         [needs B1+B2]
   C1a (1-2) parallel from day 1
+  TRACK H · veilgremlin, Codex parity (D-BETA-8, 2026-09-14) — H0-H4 required, H5 only if H1 forces it:
+      H2b(1-2), H2c(1-2) — no blockers, start immediately
+      H0(2-3) — needs A3 (Track 1)
+      H1(2-4) → H2a(2-3) → H3(3-5) → H4(2-3) — needs H0, H2b, H2c too — critical sub-chain ≈ 9-15
+      [only if H1 rejects config redirect] → H5(6-9)
                                   ↓
                         Phase E (4-6) → BETA
 Independent/optional: XREPO-011 (Windows/Linux) — not on the path
 ```
 
-**Critical path (two workers):** 2 + (9-15) + (2-3) + (5-9) + (4-6) ≈ **22-35 sessions**.
-**Single worker, fully serial:** ≈ **31-47 sessions**.
+**Critical path (two workers), Claude-only baseline (pre-D-BETA-8):** 2 + (9-15) + (2-3) + (5-9) +
+(4-6) ≈ **22-35 sessions**. **Single worker, fully serial:** ≈ **31-47 sessions**.
+
+**With D-BETA-8 (Codex parity required), critical path — not precisely re-derived here.**
+Track H's own critical sub-chain (H1→H2a→H3→H4, excluding H5) is roughly **9-15 sessions** and its
+prerequisite H0 (2-3) only hard-depends on A3, already inside Track 1's existing 9-12; H2b/H2c
+(1-2 each) have no blockers at all. That sub-chain can run substantially parallel to Track 2's own
+9-15, since neither depends on the other. Treated as fully serial (the conservative case — no
+worker available to run it in parallel with Track 2), the baseline grows to roughly **31-50
+sessions** without H5, or **37-59 sessions** if H1's verdict forces H5 (+6-9). Whether it actually
+runs parallel to Track 2 — and whether Codex also needs H6 (incremental streaming, shared scope
+with A4) for real session parity — is genuine scheduling and scoping work for whoever next picks
+up Track 1/Track H concurrently, not guessed at in this document. See `docs/decisions.md`'s
+2026-09-14 D-BETA-8 entry.
 
 **Three schedule risks, in order:** (1) legal review rejecting the unsealed interim (B3 grows,
 possibly more); (2) B2's from-zero deployment overrunning even 5 sessions; (3) A7 measuring
-recall below RISK-0003's gate, opening unsized detector remediation on condition (1).
+recall below RISK-0003's gate, opening unsized detector remediation on condition (1). **A fourth,
+new with D-BETA-8:** H1's verdict forcing H5 (the CONNECT/process-scoped-CA transport, the single
+riskiest, highest-effort component in Track H) would add 6-9 sessions plus its own E1 dependency
+for any cohort distribution.
 
 ---
 
