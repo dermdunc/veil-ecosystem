@@ -1,0 +1,114 @@
+# Second material amendment to INT-2026-09-13-001, post-acceptance. Per
+# docs/intent-driven-development.md's amendment protocol: material changes get an amendment
+# file + explicit user approval before work continues, for a T3 intent. This one is larger than
+# the first (amendment-2026-09-13-001.yaml, credential source) -- it pulls a real slice of M6
+# (streaming) into A2's own scope, which this intent's ORIGINAL disproof_criteria #4 explicitly
+# named as scope creep to avoid. The amendment protocol exists for exactly this: a real,
+# in-flight discovery that changes what the mission needs to do, disclosed and approved before
+# proceeding, not silently absorbed.
+#
+# GROUND for this amendment: running the actual live-run proof (scripts/a2-live-proof.sh)
+# against the real, unmodified `claude` CLI, twice (default output format, and
+# `--output-format json`), both attempts failed identically: `API Error: 400 vg-proxy:
+# refusing to forward -- streaming ("stream": true) is not supported by this milestone --
+# blocked, not silently unmasked`. Checked `claude --help` for any flag forcing non-streaming
+# at the API layer: none exists -- `--output-format` only controls the CLI's own terminal
+# output shape, not whether it sets `stream: true` in its actual Anthropic Messages API
+# request, which it always does. This is a real, verified fact about how the real product
+# works, not a bug in vg-proxy's own streaming guard (mask_request.rs's `stream: true` check,
+# added earlier this same mission per this intent's own confirmation criteria, fired exactly
+# as designed both times).
+#
+# Consequence: A2's own live-run-proof confirmation criteria (1 and 3, as already amended by
+# amendment-2026-09-13-001.yaml) cannot be satisfied by any real, unmodified `claude` CLI
+# session without vg-proxy handling a streaming response at least minimally -- not because A2's
+# own scope was wrong to exclude M6's *full* scope, but because "prove a real Claude Code
+# session works" and "non-streaming only" turned out to be mutually exclusive, a fact
+# beta-implementation-plan.md's own A2 row did not know when it was written (it assumed a real
+# Claude Code session *could* be non-streaming). Put directly to the user (AskUserQuestion,
+# three options: pull minimal streaming support into this mission now; prove the masking claim
+# without the interactive CLI wrapper, staying inside original scope; or stop and report the
+# finding without building further). Answer: "Pull minimal streaming pass-through into this
+# mission (Recommended)".
+intent_id: "INT-2026-09-13-001"
+amends_status: "in_progress"
+date: "2026-09-14"
+summary: >
+  A2's scope grows to include a minimal, buffer-then-demask SSE response handler for the
+  Anthropic Messages API's streaming format -- NOT full M6 (true low-latency incremental
+  streaming to the wrapped client remains out of scope; this mission's own version still waits
+  for the ENTIRE upstream SSE stream to complete, exactly like M4's existing non-streaming
+  demask already does, before returning anything to the client). This sidesteps the
+  "SSE chunk-boundary/partial-placeholder" design question beta-implementation-plan.md's own A4
+  entry named as unanswered by M4's design: because the whole stream is buffered before
+  demasking ever runs, a placeholder split across two small `text_delta` chunks is reconstructed
+  into its full text before rehydration is attempted, never demasked as two separate partial
+  fragments. The design: parse every SSE frame from the fully-buffered response; accumulate each
+  `content_block_delta`'s `text_delta.text` per content-block `index` across the WHOLE stream;
+  run this mission's existing per-leaf `rehydrate` call once per index on the fully-reconstructed
+  text (reusing `demask_response.rs`'s own `rehydrate`-wrapping helper, not a new algorithm); then
+  re-emit the SSE stream with the first `content_block_delta` per index carrying the whole
+  demasked text as one consolidated delta, and every other original delta for that index dropped
+  (its content is already included). Every other frame kind (`message_start`,
+  `content_block_start`, `content_block_stop`, `message_delta`, `message_stop`, `ping`, tool-use
+  `input_json_delta` blocks, thinking blocks, anything this parser doesn't specifically
+  recognize) round-trips unchanged -- demasking only ever touches `text_delta` content, matching
+  M4's own "text-bearing fields only" scope, not a new policy decision.
+changed_scope:
+  - before: >
+      mask_request.rs blocks any request with `"stream": true` outright (added earlier this
+      same mission, confirmation/disproof criteria already covering it) -- M6/streaming stays
+      entirely out of A2's scope, deferred to a later Track 1 item.
+    after: >
+      mask_request.rs's `stream: true` check is REMOVED (the request itself is no longer
+      blocked); a new `stream_demask.rs` module handles the resulting streaming response on
+      the way back to the client, gated on the upstream response's own `content-type:
+      text/event-stream` header (Anthropic's real signal that a response is SSE-formatted,
+      not a client-side guess). A non-streaming request's JSON response still goes through
+      the existing `demask_response.rs` path, unchanged.
+  - before: >
+      Confirmation criteria 1 and 3 (as amended 2026-09-13) require "one real, non-streaming
+      Claude Code CLI session" and describe the live-run proof's own request as
+      non-streaming.
+    after: >
+      "non-streaming" is struck from both criteria's wording -- the real `claude` CLI always
+      streams (verified twice against the live proxy, GROUND above), so requiring
+      "non-streaming" made both criteria unsatisfiable by any real, unmodified CLI session.
+      Both now require the same masking/demasking round-trip proof, satisfied via the new SSE
+      handling instead of via a request-shape restriction.
+disproof_criteria_changed:
+  - before: >
+      "This mission's own commits start or partially build M6 (streaming) or A3's production
+      daemon bootstrap ... beyond what non-streaming, already-resolved-config M5 work
+      requires -- scope creep into the next Track 1 items this intent's own hypothesis
+      explicitly excludes."
+    after: >
+      Narrowed to A3 only (production daemon bootstrap remains fully out of scope, unaffected
+      by this amendment) plus a new, explicit boundary for the streaming work this amendment
+      DOES authorize: fires if this mission's SSE handling attempts true incremental/low-
+      latency delivery to the wrapped client (streaming the response back out before the
+      upstream stream completes), attempts to solve the general partial-placeholder-across-an
+      -arbitrary-transport-chunk-boundary problem (this mission's own buffer-first design
+      sidesteps that question for SSE event boundaries specifically, it does not answer it
+      generally), or touches tool-use `input_json_delta`/thinking-block content (out of
+      scope, named explicitly, `text_delta` only). Still fires on any A3-scoped
+      state-dir/keychain daemon-bootstrap work, unchanged from the original.
+new_confirmation_criterion: >
+  A live-run proof of the SSE path specifically: the same synthetic-secret masking/demasking
+  claim (confirmation criterion 1) succeeds via a real `claude` CLI invocation without the
+  streaming guard blocking it -- i.e. `scripts/a2-live-proof.sh` passes end-to-end against the
+  real, unmodified CLI, not merely against a synthetic/hand-constructed SSE fixture in a unit
+  test. Unit/integration tests against hand-constructed SSE fixtures (chunk-boundary-splitting a
+  known placeholder across multiple deltas, non-text block kinds passing through unchanged,
+  malformed/unparseable frames not corrupting the stream) are necessary but not sufficient on
+  their own -- this criterion is not satisfied by tests alone.
+unchanged: >
+  risk_tier (T3), all three triggered governance categories, the TLS/certificate-validation
+  confirmation criteria and their tests (already passing, untouched by this amendment), the
+  document/image content-block criteria (untouched -- this amendment's SSE parser never
+  touches document/image handling, which lives entirely in mask_request.rs's request-side
+  path), bindings, owner, and every other confirmation/disproof criterion not explicitly
+  listed above as changed.
+approved_by: "dermdunc (via AskUserQuestion, main session, 2026-09-14) -- 'Pull minimal
+  streaming pass-through into this mission (Recommended)'. See intent.yaml history for the
+  full record."
