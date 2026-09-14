@@ -472,6 +472,7 @@ bindings:
     - "veilgremlin#74"
     - "veilgremlin#75"
     - "veil-ecosystem#28"
+    - "veil-ecosystem#29"
 history:
   - status: declared
     date: "2026-09-14"
