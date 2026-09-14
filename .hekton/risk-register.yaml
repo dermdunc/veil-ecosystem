@@ -143,3 +143,34 @@ risks:
       deployment). Both happen to involve Fly.io and a missing credit card, but are two
       different deployments -- do not conflate them, the same way RISK-0004/VE-RISK-0004
       must not be conflated across repos."
+
+  - id: RISK-0008
+    title: "The real claude CLI redacts its own internal billing header against any custom ANTHROPIC_BASE_URL, which the real Anthropic API then rejects -- breaking the ANTHROPIC_BASE_URL-redirection mechanism beta condition 1 depends on"
+    category: security
+    likelihood: high
+    impact: critical
+    status: open
+    owner: dermdunc
+    mitigation: >
+      Discovered running veilgremlin's scripts/a2-live-proof.sh (A2's own live-run proof,
+      INT-2026-09-13-001) against a real, unmodified claude CLI: the CLI's own system prompt
+      embeds `x-anthropic-billing-header: [REDACTED:SECRET]; cc_entrypoint=sdk-cli;` whenever
+      ANTHROPIC_BASE_URL points away from the default endpoint -- confirmed the same prompt
+      succeeds with ANTHROPIC_BASE_URL unset, isolating the cause to the CLI's own defensive
+      redaction, not vg-proxy's masking (vg-proxy correctly forwards whatever the CLI sends).
+      The real API then rejects the redacted value outright (400: reserved keyword). Not
+      specific to vg-proxy -- fires against any custom ANTHROPIC_BASE_URL, the exact mechanism
+      beta condition 1 (docs/beta-implementation-plan.md §1) and this plan's own M5/A2 framing
+      depend on. A bounded check of `claude gateway` (an enterprise auth/telemetry gateway
+      subcommand, its own YAML config) did not reveal a documented bypass -- looks like a
+      heavier, differently-shaped integration than a single local proxy. Filed jointly with
+      veilgremlin's own equivalent entry (linked below; disambiguated by repo, same precedent
+      as RISK-0004/RISK-0006 above -- do not conflate the two). Needs a real owner and
+      product-level decision this registry alone cannot make.
+    raised_date: 2026-09-14
+    reviewed_date: 2026-09-14
+    links:
+      - "docs/risks.md"
+      - "docs/beta-implementation-plan.md#1-beta-bar-ratify-in-phase-0"
+      - "veilgremlin/docs/risks.md#risk-0014"
+      - "veilgremlin/.hekton/intents/INT-2026-09-13-001/intent.yaml"
