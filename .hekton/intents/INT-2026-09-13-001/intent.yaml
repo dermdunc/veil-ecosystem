@@ -1,0 +1,618 @@
+# GROUND — real commands/reads run before declaring, 2026-09-13, on branch
+# agent/claude/track1-a2-real-tls-client (this repo, veil-ecosystem):
+#
+#   Read docs/beta-implementation-plan.md's Progress tracker table and §1/§4's Track 1
+#   row for A2 in full: "Real TLS client in vg-proxy/src/upstream.rs, Anthropic API-key
+#   mode, real Claude Code session. Confirm conservative default for unhandled
+#   `document` content blocks." Confirmed Phase 0 is fully closed (all three rows Done)
+#   per the tracker itself, unblocking Track 1/A per §5's dependency graph -- this
+#   intent does not re-decide anything Phase 0 already settled.
+#   Read docs/intent-driven-development.md in full (already read earlier this session)
+#   and the founding intent INT-2026-09-12-001 in full as the only sibling in this
+#   registry, for shape/convention precedent (tektograph-1.0, single-entry `history`
+#   start, GROUND/FIT header-comment convention, owner identity `dermdunc`).
+#   Read .hekton/cross-repo-deps.yaml in full (already read earlier this session, 19
+#   entries, 8 closed/11 open) -- confirmed A2 itself has no XREPO id (it is
+#   single-repo veilgremlin work the cross-repo registry structurally doesn't track,
+#   same as the plan's own §6 states), but XREPO-015's scope correction is directly
+#   relevant: it independently confirmed veilgremlin's `parse_observatory_endpoint`
+#   rejects any non-`http` scheme and named a real `rustls` client as the custodian-
+#   telemetry-side TLS work -- a DIFFERENT TLS surface (telemetry emitter, not the
+#   Anthropic upstream connection this intent scopes to) but real precedent that this
+#   family's TLS-client convention, once chosen, is `rustls`. Not assumed as this
+#   intent's own dependency choice without the mission itself confirming it applies
+#   equally well to a `hyper`-based upstream client -- see confirmation_criteria below,
+#   which requires the actual choice be recorded, not pre-decided here.
+#
+#   Ran real commands in ../veilgremlin (sibling repo, where this mission's actual code
+#   lands):
+#   - `git status --short --branch` / `git worktree list`: veilgremlin was on branch
+#     `agent/claude/xrepo-009-doc-catchup`, clean, NOT an ancestor of `main` (its own PR
+#     #72 already merged main past it). Checked out and pulled `main` fresh
+#     (`8d094ae`, a merge of PR #72) -- this mission's implementation branch (to be
+#     created at kickoff) will fork from that commit, not from the stale branch. Noted,
+#     not touched: an existing worktree at
+#     `.claude/worktrees/agent-a9869ec2363020f3e` on branch
+#     `worktree-agent-a9869ec2363020f3e` -- pre-existing state unrelated to this
+#     mission's scope, left alone.
+#   - Read `crates/vg-proxy/src/upstream.rs` in full. Confirmed genuinely plain-HTTP-
+#     only: `TcpStream::connect` + `hyper::client::conn::http1::handshake`, no TLS
+#     anywhere; `UpstreamConfig` is a bare `SocketAddr`, no host/TLS/API-key config
+#     surface at all. `FORWARDED_HEADERS` already allow-lists `x-api-key` and
+#     `authorization` -- API-key *header forwarding* already exists; what's missing is
+#     TLS transport and a real upstream target, not the header plumbing.
+#   - Grepped the workspace `Cargo.toml` and every crate `Cargo.toml` for
+#     `rustls|native-tls|tokio-rustls|webpki|rustls-pemfile`: zero matches anywhere.
+#     Confirms no TLS dependency exists yet in this workspace at all -- adding one is
+#     new, not a version bump, which is why `governance.yaml`'s
+#     `dependency_changes: human_required` is live for this mission (see risk_tier
+#     below), not a formality.
+#   - Read `docs/next-actions.md` lines 33-118 in full. Confirmed M5 ("real Claude
+#     Code, Anthropic API-key mode, non-streaming... also where `upstream.rs` needs
+#     real TLS support") is genuinely the real "Next up" milestone, unstarted, per the
+#     plan's own build-order note. M3/M4's own named-gaps lists both independently name
+#     the same TLS gap, cited three times across two milestones -- not a single stale
+#     mention.
+#   - **Real, mission-relevant correction found by direct source read, not assumed from
+#     the plan doc's own framing:** the plan's A2 row says "Confirm conservative
+#     default for unhandled `document` content blocks" as if this were still an open
+#     decision. Grepped `crates/vg-proxy/src/schema/anthropic.rs` and
+#     `crates/vg-proxy/src/mask_request.rs` directly: `ContentBlockKind::Document` and
+#     `::Image` already exist, already fail-closed ("blocks the whole request"), and
+#     already have a passing regression test
+#     (`document_content_block_blocks_the_whole_request`,
+#     `mask_request.rs:562-573`) confirming exactly that. The conservative default is
+#     not an open question this mission needs to decide -- it is already decided and
+#     shipped. This mission's real obligation on that front is narrower than the plan
+#     text implies: confirm (with a regression test) that this mission's own TLS/
+#     upstream changes do not silently regress it, not design new blocking logic.
+#     Reflected in confirmation_criteria below rather than left as the plan's own
+#     stale framing.
+#   - Read `docs/risks.md` RISK-0003 (secret ≥99%/PII ≥95% recall, unmeasured -- the
+#     plan's own A7, not this mission) and RISK-0012 (placeholder IANA PEN, D-BETA-7,
+#     Phase D/E gate, not this mission) to confirm neither is this mission's own scope,
+#     only adjacent Track 1 items.
+#   Read this repo's own `.hekton/risk-register.yaml` in full (all seven entries) and
+#   `docs/decisions.md`'s D-BETA-1 row. RISK-0004/VE-RISK-0004/F4 (self-asserted demask
+#   authorisation, ecosystem-wide -- cited by its full disambiguated name per the risk's
+#   own registered instruction, not bare "RISK-0004", corrected from an earlier draft of
+#   this file per the Codex cross-model critique's finding 10) binds directly: re-read
+#   D-BETA-1's actual row text (docs/beta-implementation-plan.md §3) directly rather
+#   than trusting a paraphrase -- it does NOT literally name "A2" or "real-traffic data
+#   plane"; it states the accidental-disclosure-vs-adversarial-agent threat split in the
+#   abstract. The bind is this intent's own inference, stated as such: that abstract
+#   split becomes concretely live for the first time under this mission's real-upstream
+#   change rather than a mock, which is why RISK-0004/VE-RISK-0004/F4 is bound here --
+#   not a claim that D-BETA-1's text itself already names this mission. RISK-0005 (a
+#   component repo's docs can be stale relative to its code) binds because this
+#   mission's own confirmation_criteria require updating `beta-implementation-plan.md`'s
+#   Progress tracker and veilgremlin's own `next-actions.md`/session-log/build-log
+#   entries. RISK-0001 (governance-baseline-incomplete) and RISK-0003 (this repo's own
+#   closed signing risk) checked and confirmed genuinely unrelated to this mission's
+#   subject matter.
+#
+#   **Correction (Codex cross-model critique, finding 10):** an earlier draft also bound
+#   RISK-0002 ("this document goes stale silently") on the reasoning that this mission's
+#   Progress-tracker/next-actions.md update obligations fall under it. Re-read
+#   RISK-0002's actual registered `mitigation` text directly: it is scoped specifically
+#   to `docs/architecture.md`'s cross-repo Integration Status table going stale, not to
+#   planning-document staleness in general -- the same kind of registry-hygiene
+#   collision this repo already caught once for RISK-0004/RISK-0006 (see
+#   INT-2026-09-12-001's own GROUND section). This mission does not touch
+#   `docs/architecture.md`'s Integration Status table, so RISK-0002 does not actually
+#   apply and the binding is removed below rather than kept on an inaccurate citation.
+#   This mission's own doc-staleness obligations are covered by RISK-0005 alone, which
+#   is genuinely scoped broadly enough ("a component repo's own documentation can itself
+#   be stale relative to its code") to fit.
+#   Read `.hekton/governance.yaml` in full. `dependency_changes: human_required` is
+#   live and directly triggered (new TLS crate, confirmed absent above).
+#   **Correction (Codex cross-model critique, finding 6): this is not the only category
+#   triggered, and an earlier draft undercounted them.** `credential_or_secret_changes:
+#   human_required` IS genuinely triggered, not merely adjacent: this mission is the
+#   first in this family's history to exercise a real Anthropic API key end-to-end
+#   against the real API, not just forward the header to a mock. `financial_changes:
+#   human_required` is also triggered: the live-run proof this mission's own
+#   confirmation_criteria requires incurs real, billable Anthropic API usage, another
+#   first. Both are now reflected in the risk_tier comment's stated basis (three
+#   triggered categories, not one) and in new confirmation/disproof criteria requiring
+#   the real key and any synthetic sensitive test value never leak into logs/evidence.
+#   `production_changes` not triggered: this mission's own real-Anthropic-API exercise
+#   is a live-run proof against the real Anthropic API, not a production *deployment* --
+#   no beta user is exposed by this mission alone (Track 2/Phase B, not yet started,
+#   is what actually stands up anything user-facing).
+#   Checked `ls .hekton/intents/ | grep 2026-09-13` before writing: no match --
+#   `INT-2026-09-12-001` is the only existing entry, so `NNN=001` is free for today's
+#   date.
+#   Ran `python3 scripts/validate_intents.py --repo-root .` before writing this file:
+#   exits 0 with the founding intent alone (`1 intent(s) valid`) -- baseline confirmed
+#   clean before adding this one.
+#
+# FIT — this repo's registry already has exactly one live schema
+# (`schema_version: "tektograph-1.0"`, chosen and recorded in
+# docs/intent-driven-development.md) and one sibling (`INT-2026-09-12-001`) to follow
+# for shape; no ambiguity to resolve here the way the founding intent had to. Diverges
+# from that sibling in `kind` (this is the registry's first `kind: feature` rather than
+# `kind: decision`) -- see risk_tier below for how that affects tier precedent, since
+# the only local tier rule this repo's own operating doc states
+# (docs/intent-driven-development.md's "T2/T3 boundary" section) is written for
+# `kind: decision` specifically and has no `kind: feature` precedent to inherit
+# instead.
+schema_version: "tektograph-1.0"
+intent_id: "INT-2026-09-13-001"
+title: "A2: real TLS client + Anthropic API-key mode in veilgremlin's vg-proxy upstream forwarder — Track 1's first beta-condition-1 build item"
+kind: feature
+status: technically_confirmed
+# T3 — a novel, case-specific classification by analogy, NOT a "departure from sibling
+# precedent" (Codex cross-model critique, finding 7, corrected this framing: there is
+# no `kind: feature` sibling in this registry to depart FROM — calling this a departure
+# overstated what precedent exists). docs/intent-driven-development.md's only tier rule
+# is written strictly for `kind: decision`: T3 if the intent's substance triggers a
+# `.hekton/governance.yaml` `human_required` `approval_policy` category, T2 otherwise.
+# This intent extends that rule's reasoning (by triggered governance category, not by
+# `kind`) to a `kind: feature` intent for the first time in this registry — a genuine
+# gap in the operating doc, disclosed here rather than silently assumed resolved; a
+# human-approved `kind: feature` tier rule belongs in
+# docs/intent-driven-development.md itself, not invented ad hoc by each intent that
+# hits the gap.
+#
+# The trigger is real and, per the Codex cross-model pass, actually broader than
+# originally stated: `dependency_changes: human_required` (a new TLS crate, confirmed
+# absent from both Cargo.toml and Cargo.lock), PLUS `credential_or_secret_changes` (this
+# mission is the first to exercise a real Anthropic API key end-to-end, not merely
+# forward its header), PLUS `financial_changes` (the live-run proof incurs real,
+# billable Anthropic API usage for the first time in this family's history — see the
+# cost/leakage confirmation and disproof criteria added below). Three directly-triggered
+# `human_required` categories, not one, make T3 more solidly grounded than the original
+# single-category basis, even though the "departure from precedent" framing was wrong.
+risk_tier: T3
+iteration: 0
+review_by: "2026-10-13"
+owner:
+  accountable_human: dermdunc
+  responsible_agent: "claude (main session); intent recorded in veil-ecosystem on branch agent/claude/track1-a2-real-tls-client; implementation lands in the sibling repo veilgremlin on its own branch, created fresh from veilgremlin's own main at mission kickoff time (main was at 8d094ae when this intent was declared 2026-09-13 — cited as of-declaration context only, NOT a pin; main is expected to advance before kickoff and the branch should fork from whatever main is current then, not from this stale SHA). Cited here via bindings.prs once a veilgremlin PR exists — since this schema's bindings.prs field holds bare PR numbers with no repo qualifier (unlike XREPO's own links list, which always names the repo alongside a PR), any entry added here for a veilgremlin PR must be written repo-qualified (e.g. \"veilgremlin#NNN\") to stay unambiguous against a same-numbered PR in veil-ecosystem itself. (Both corrections per Codex cross-model critique, finding 12.)"
+hypothesis: >
+  We believe that building a real TLS client for veilgremlin's vg-proxy upstream
+  forwarder (crates/vg-proxy/src/upstream.rs, confirmed genuinely plain-HTTP-only —
+  TcpStream + hyper::client::conn::http1, no TLS anywhere, no host/TLS/API-key config
+  surface), adding Anthropic API-key mode on top of the header-forwarding surface that
+  already exists, and proving both with one real, live, non-streaming Claude Code
+  session routed through vg-proxy to the real https://api.anthropic.com — not a mock —
+  closes M5 (veilgremlin's own "next up" milestone per docs/next-actions.md) and the
+  largest concretely-scoped remaining piece of Track 1's contribution to beta condition
+  1 (masking data plane works for real traffic), while leaving M6 (streaming), A3
+  (daemon bootstrap), and real document-content-block sub-case handling (text/base64/
+  url) untouched as later Track 1 items this mission does not start, and while keeping
+  the already-shipped, already-tested document/image fail-closed content-block blocking
+  provably unregressed by this mission's own transport-layer changes.
+confirmation_criteria:
+  - "A live-run proof (this repo's own veil-demo *-proof.sh precedent, or an equivalent real invocation recorded in this mission's own evidence) routes one real Claude Code CLI session through vg-proxy — the real `claude` binary, invoked non-interactively (e.g. `claude -p '<prompt>'`), with ANTHROPIC_BASE_URL redirected at vg-proxy's listener, authenticating via the CLI's own existing subscription session, NOT a separately-obtained Anthropic Console API key — over a real TLS connection from vg-proxy to https://api.anthropic.com. AND the proof plants a synthetic sensitive value (e.g. a fake email/phone/secret) in the prompt that is masked before egress and correctly demasked in the real response reaching the wrapped client. A benign request/response round-trip that never exercises masking does NOT satisfy this criterion — the hypothesis is about the masking data plane working over real TLS, not merely that an HTTP client can reach api.anthropic.com. No Anthropic Console API key is created, requested, or handled by this mission at any point. (Codex cross-model finding: the original wording allowed a 'non-error response' from a direct API-key call to satisfy this without ever proving a masked/demasked round-trip. Amended post-acceptance, amendment-2026-09-13-001.yaml: the credential source changed from a separately-obtained API key to the CLI's own subscription session. Amended again, amendment-2026-09-14-001.yaml: 'non-streaming' struck — the real claude CLI always streams, verified twice against the live proxy; this criterion is now satisfied via the mission's own SSE-handling path, not via a request-shape restriction that made it unsatisfiable by any real CLI session.)"
+  - "The live-run proof demonstrates vg-proxy actually listening and routing real traffic — reusing or extending the existing crates/vg-proxy/tests/server_smoke.rs-style pattern (a real bound listener, not a mock upstream) — WITHOUT building A3's own production state-dir/keychain discovery for a vg-proxy daemon *binary*. This mission may build the minimal dev/test harness needed to start vg-proxy as a live listener for the proof; the A3-scope-creep disproof criterion below is about production daemon bootstrap specifically, not this minimal harness. (Codex cross-model finding: confirmed against crates/vg-cli/src/main.rs and crates/vg-proxy/src/session.rs that no production `vg` subcommand starts vg-proxy today and unregistered addresses fail closed with UnregisteredAddr — this criterion resolves the resulting A2/A3 boundary ambiguity explicitly rather than leaving it for the mission to guess.)"
+  - "The real `claude` CLI's own existing session credential reaches the real https://api.anthropic.com over an AUTHENTICATED TLS connection — standard WebPKI certificate chain validation and hostname matching against api.anthropic.com, no disabled/bypassed certificate verification — via whichever header the CLI's own session actually sends (x-api-key or authorization, both already allow-listed in FORWARDED_HEADERS today), and a real, non-error response returns through vg-proxy to the wrapped client. (Codex cross-model finding: 'real TLS' as originally worded did not require certificate validation at all — an implementation that disabled cert verification would have satisfied the original criterion. Amended post-acceptance, amendment-2026-09-13-001.yaml: credential source is the CLI's own subscription session, not a raw API key sourced from the environment.)"
+  - "SUPERSEDED by amendment-2026-09-14-001.yaml — the real claude CLI always streams (verified twice against the live proxy), so 'confirmed non-streaming, fails closed on stream: true' made this criterion permanently unsatisfiable by any real, unmodified CLI session. Replaced by: the response's SSE stream is handled by a new, dedicated demask path (`stream_demask.rs`), gated on the upstream response's own `content-type: text/event-stream` header, that buffers the entire upstream stream before ever attempting demasking (sidestepping, not solving, the chunk-boundary/partial-placeholder question — see the amendment's own scope notes) and consolidates each content block's `text_delta` fragments into one full-text rehydrate call per block. A non-streaming JSON response still goes through the original demask_response.rs path unchanged."
+  - "A live-run proof of the SSE path specifically succeeds end-to-end against the real, unmodified claude CLI (scripts/a2-live-proof.sh passing, not merely a hand-constructed SSE fixture in a unit test) — added by amendment-2026-09-14-001.yaml as this amendment's own confirmation bar, distinct from and in addition to unit/integration coverage of chunk-boundary-splitting, non-text block pass-through, and malformed-frame safety."
+  - "A regression test at the integration level — through vg-proxy's actual request-routing path, not only mask_request.rs's own unit tests — demonstrates the existing document/image content-block fail-closed blocking (ContentBlockKind::Document/Image → MaskRequestError::BlockedContentBlock) is unchanged by this mission's TLS/upstream/routing work and that neither block type reaches the real upstream. This mission confirms an already-shipped conservative default stays true end-to-end, per this intent's own GROUND correction to the plan's A2 row wording; it does not design new document-handling logic (real text/base64/url sub-case handling stays explicitly out of scope). (Codex cross-model finding: the original criterion permitted merely rerunning the existing unit test, which would stay green even if a TLS/routing refactor bypassed mask_request.rs entirely.)"
+  - "cargo build --workspace --locked, cargo clippy --workspace --all-targets --locked -- -D warnings, cargo fmt --check, cargo test --workspace --locked, cargo deny check, and cargo audit all pass clean after this mission's changes — matching this repo's actual CI gates (.github/workflows/ci.yml) for a security-sensitive new dependency, not only the narrower subset prior milestones' own next-actions.md entries happened to name. (Codex cross-model finding: the original criterion omitted --locked/cargo-deny/cargo-audit despite CI running all three.)"
+  - "The new TLS crate dependency this mission adds (not pre-selected by this intent — e.g. whether XREPO-015's rustls precedent for the telemetry-emitter TLS surface also fits a hyper-based upstream client, or a different crate fits better) is presented to the user as an explicit choice, with a real opportunity to object, BEFORE it lands — via AskUserQuestion or equivalent — not merely recorded after the fact in docs/decisions.md or a new ADR. (Codex cross-model finding: governance.yaml's dependency_changes: human_required means a human approves the choice; a written record after the fact documents a decision, it does not constitute the approval the policy requires.)"
+  - "This mission's live-run proof, and any evidence artifact it produces, never contains the raw API key or the synthetic sensitive value's raw (unmasked) form in logs, process arguments, error messages, or committed transcripts — matching this repo's own never_commit_secrets agent default (governance.yaml) and RISK-0004/F4's own vault-key-handling concern, extended here to the API key this mission is the first to exercise for real. (Codex cross-model finding: the artifact as originally written under-counted governance triggers — this mission also touches credential_or_secret_changes, real API-key handling for the first time, not only dependency_changes.)"
+  - "docs/next-actions.md's M5 entry, docs/session-log.md, and (per veilgremlin's own AGENTS.md convention) a docs/build-log/ entry are all updated to reflect this mission's real end state — built, partially built with named remaining gaps, or blocked — not left stale. (Codex cross-model finding: the original criterion named next-actions.md only, omitting this repo's own other required traceability artefacts.)"
+  - "veil-ecosystem's own docs/beta-implementation-plan.md Progress tracker (Track 1 row, currently 'Not started') is updated to reflect A2's real status once this mission closes."
+disproof_criteria:
+  - "upstream.rs (or its replacement) gains TLS configuration surface, but this mission's own verification never makes a real, live network call to the actual https://api.anthropic.com — only a local mock-TLS-server test exists. XREPO-015's own scope correction explicitly named this exact gap (client-side work is buildable and testable against a mock without waiting on live infrastructure) for a *different* TLS surface (the telemetry emitter); this mission's confirmation_criteria requires more than that for the Anthropic upstream specifically, and satisfying only the mock-only bar fires this criterion."
+  - "The document/image content-block fail-closed blocking regresses under this mission's own changes at the integration level — a request carrying a document or image content block reaches the real upstream instead of being blocked — and this mission's own test suite does not catch it before the work is presented as done."
+  - "A new crate dependency lands in veilgremlin's Cargo.toml/Cargo.lock as part of this mission without an explicit, prior, human-approved choice (an AskUserQuestion or equivalent BEFORE landing, not only a post-hoc record) — governance.yaml's dependency_changes: human_required firing silently rather than being genuinely satisfied. (Sharpened per Codex cross-model finding 5: documentation after the fact does not constitute the approval the policy requires.)"
+  - "This mission's own commits build A3's production daemon bootstrap (real state-dir/keychain discovery for a vg-proxy daemon binary) — scope creep into the next Track 1 item this intent's own hypothesis explicitly excludes. Building the minimal dev/test harness confirmation criterion 2 explicitly permits (a live listener for the proof, reusing the server_smoke.rs pattern) does NOT itself fire this criterion — only production-grade state-dir/keychain bootstrap work would. (Narrowed by amendment-2026-09-14-001.yaml: M6/streaming is no longer wholly excluded — this mission now builds a minimal, buffer-first SSE demask path, per the amendment's own explicit authorization. This criterion instead fires if that SSE work over-reaches: true incremental/low-latency delivery to the client before the upstream stream completes, an attempt to solve the general partial-placeholder-across-any-transport-chunk-boundary problem rather than this mission's own buffer-first SSE-frame-boundary sidestep, or touching tool-use input_json_delta/thinking-block content — text_delta only, named explicitly in the amendment.)"
+  - "The live-run proof's TLS connection accepts an invalid, self-signed, expired, or wrong-hostname certificate, or the real API key is sent to any origin other than an authenticated api.anthropic.com — a real security regression for a security-focused masking proxy's first live network egress. (Codex cross-model finding: the original criteria had no genuine behavioral falsifier for TLS authentication at all.)"
+  - "A streaming response (`stream: true`) reaches the wrapped client with placeholders unresolved — either because the new stream_demask.rs path was never reached (the content-type: text/event-stream gate misfired or was bypassed) and demask_response.rs's own unchanged-body-on-parse-failure behavior silently passed the raw SSE bytes through instead, or because the new path itself failed to demask a real placeholder occurrence."
+  - "The real API key, or the synthetic sensitive value planted for the masking proof, appears unmasked in any log, process argument, error message, or committed evidence artifact this mission produces."
+  - "This intent's own status is advanced past critiqued without an explicit AskUserQuestion answered by the user in this session, with that answer's substance recorded in the accepted history entry — the same T3 named-per-intent-approval rule the founding intent's own disproof_criteria established, applied here rather than silently treated as satisfied by the two AskUserQuestion rounds that already agreed the mission's scope (those rounds approved scope, not this specific file's contents)."
+bindings:
+  mission_manifests: []
+  adrs: []
+  risks:
+    - "RISK-0004"
+    - "RISK-0005"
+    - "RISK-0008" # veil-ecosystem's own risk, filed 2026-09-14 for the claude-CLI billing-header
+                  # finding this mission's live-run proof surfaced and then closed same day
+  prs:
+    - "veilgremlin#73"
+    - "veil-ecosystem#27"
+history:
+  - status: declared
+    date: "2026-09-13"
+    by: "claude (main session, branch agent/claude/track1-a2-real-tls-client)"
+    evidence: >
+      This file. Real grounding performed before declaring, cited in full in the
+      GROUND comment above: read beta-implementation-plan.md's Progress tracker and A2
+      row, intent-driven-development.md and the founding intent INT-2026-09-12-001 for
+      shape precedent, cross-repo-deps.yaml (confirming A2 has no XREPO id and that
+      XREPO-015's rustls precedent is a different TLS surface); in the sibling
+      veilgremlin repo: checked git status/worktree state and moved to fresh main,
+      read upstream.rs in full (confirmed plain-HTTP-only), grepped for existing TLS
+      deps (none found), read next-actions.md's M5 status in full, and — the mission-
+      relevant correction this grounding pass found — grepped the actual document/
+      image content-block handling code and found the plan's A2 row's "confirm
+      conservative default" framing is already decided and shipped, not open, which
+      this intent's confirmation_criteria reflects rather than the plan's stale
+      wording. Read this repo's own risk-register.yaml (all seven entries) and
+      governance.yaml in full to ground both the risk bindings and the T3 tier
+      departure's stated reason. Checked the intents directory for today's date before
+      taking serial 001. Ran the validator clean (1 valid) before writing this file.
+  - status: critiqued
+    date: "2026-09-13"
+    by: "claude (fresh-context critique subagent, refute-first pass)"
+    evidence: >
+      Independently re-ran every grounding claim in the GROUND comment against live
+      state, from a fresh context, rather than trusting the comment's text. In
+      ../veilgremlin: `git status --short --branch`, `git worktree list`, and `git log
+      -1` confirmed main is genuinely at `8d094ae` (merge of PR #72) with the stray
+      worktree `.claude/worktrees/agent-a9869ec2363020f3e` present as described; `git
+      reflog` additionally confirmed the claimed prior-state transition itself
+      (`HEAD@{1}: checkout: moving from agent/claude/xrepo-009-doc-catchup to main`,
+      `HEAD@{0}: pull --quiet: Fast-forward` to 8d094ae) -- stronger verification than
+      the file's own claim, which only asserted the end state. Read
+      `crates/vg-proxy/src/upstream.rs` in full: confirmed genuinely plain-HTTP-only
+      (`TcpStream::connect` + `hyper::client::conn::http1::handshake`, no TLS anywhere),
+      `UpstreamConfig` a bare `SocketAddr`, and `FORWARDED_HEADERS` already allow-listing
+      both `x-api-key` and `authorization` (lines 37-43). Grepped every one of the 11
+      Cargo.toml files in the workspace (confirmed count via `find`, matching all 10
+      workspace members plus the root) for
+      `rustls|native-tls|tokio-rustls|webpki|rustls-pemfile`: zero matches -- and went
+      further than the file's own claim by also grepping the resolved `Cargo.lock` for
+      the same crate names as package entries: also zero, ruling out an indirect/
+      transitive TLS dependency the Cargo.toml-only grep could have missed. Grepped
+      `crates/vg-proxy/src/schema/anthropic.rs` (confirmed `ContentBlockKind::Document`/
+      `::Image` variants exist) and `crates/vg-proxy/src/mask_request.rs` (confirmed both
+      map to `MaskRequestError::BlockedContentBlock`, fail-closed) and then actually ran
+      `cargo test --workspace document_content_block_blocks_the_whole_request`, not just
+      read the test source: `test mask_request::tests::document_content_block_blocks_the_whole_request
+      ... ok`, 1 passed 0 failed -- confirming the cited regression test genuinely exists
+      and genuinely passes today, not merely that its name appears in the file. Read
+      `docs/next-actions.md` lines 1-140 directly: confirmed M5 ("real Claude Code,
+      Anthropic API-key mode... also where upstream.rs needs real TLS support") is the
+      real "Next up" milestone per M4's own closing note, and both M3's and M4's own
+      "Named gaps" lists independently name the same TLS gap. Read
+      veilgremlin/docs/risks.md directly and confirmed RISK-0003 (detector recall,
+      A7-adjacent) and RISK-0012 (placeholder IANA PEN OID) match the file's citations
+      verbatim.
+
+      In this repo (veil-ecosystem): read `.hekton/governance.yaml` in full and confirmed
+      `dependency_changes: human_required` is live under `approval_policy`, alongside the
+      six other `human_required` categories the file names. Read `.hekton/risk-register.yaml`
+      in full (all seven entries) and confirmed RISK-0002/0004/0005's titles and scope
+      match the file's description, and independently assessed RISK-0001 ("governance
+      baseline incomplete until first review") and RISK-0003 (closed veil-proxy signing
+      risk) as genuinely unrelated to this mission's subject matter -- agreeing with the
+      file's own exclusion. Read `docs/decisions.md`'s D-BETA-1 row directly (§3, lines
+      109-118 as currently numbered) and found a real, if minor, overclaim: the row's
+      actual text never names "A2" or "real-traffic data plane" -- it states the
+      accidental-disclosure-vs-adversarial-agent threat split in the abstract only. The
+      file's GROUND section had asserted "D-BETA-1's own text names A2's real-traffic
+      data plane," which overstates what the source document actually says. **Fixed in
+      place**: reworded the GROUND section (the RISK-0004 binding paragraph) to state
+      plainly that D-BETA-1's text does not literally name A2, and that the connection
+      between D-BETA-1's abstract threat split and this mission's real-upstream change is
+      this intent's own inference, not a quote. The underlying bind to RISK-0004 still
+      holds on that corrected basis -- only the citation's precision was wrong, not the
+      conclusion. Re-ran `python3 scripts/validate_intents.py --repo-root .` after the
+      fix: still `[ok] INT-2026-09-13-001 (status: declared)`, 2 intent(s) valid
+      (unaffected, since the fix is comment-only).
+
+      Read `.hekton/intents/` directly (`ls`): confirmed exactly two entries,
+      `INT-2026-09-12-001` and this one -- no id collision, no undisclosed third sibling.
+      Read `docs/intent-driven-development.md`'s full T2/T3 boundary paragraph (not just
+      the file's paraphrase of it) and confirmed its rule text is written strictly for
+      `kind: decision` ("a `kind: decision` intent is T3 if..."), with no `kind: feature`
+      clause at all -- the file's own risk_tier comment discloses this gap honestly
+      rather than hiding it.
+
+      Attacked risk_tier directly: specifically tried to argue T2 is the more defensible
+      reading, on the grounds that (a) the operating doc's rule is textually scoped to
+      `kind: decision` and extending it to `kind: feature` is an interpretive leap the
+      text does not authorize, and (b) `dependency_changes: human_required` is a
+      blanket, always-on category in this repo's governance.yaml -- if this extension
+      stands as precedent, essentially any future `kind: feature` intent that adds any
+      new crate becomes T3 by the same logic, which could dilute T3's signal value over
+      time (a real precedent-setting concern worth naming even though it doesn't change
+      this file's own verdict). Concluded T3 still stands: the trigger is confirmed
+      genuine and direct (a new TLS crate, confirmed absent from both Cargo.toml and
+      Cargo.lock above, not hypothetical), the mission's real stakes (first live network
+      contact with the real Anthropic API using a real credential, in a security-focused
+      masking proxy) are materially higher than routine feature work, and the added cost
+      of T3 (a named, non-bundled AskUserQuestion at acceptance) is low relative to that
+      risk. The precedent-inflation concern is real but is a future-intent problem to
+      watch, not a defect in this one's own reasoning -- noted here for whoever declares
+      the next `kind: feature` intent in this registry, not silently resolved.
+
+      Attacked disproof_criteria for mirror-negation: read all five against their
+      matching confirmation_criteria side by side. #1 (mock-only TLS test passing but no
+      real live call) is genuinely distinct, not a mirror -- it explicitly permits partial
+      progress (TLS surface added) and fires on a specific gap (never a real call to the
+      real endpoint), citing XREPO-015 as the precedent for why a mock-only bar is
+      insufficient here specifically. #2 (document/image blocking regresses AND the
+      mission's own test suite fails to catch it) is stronger than a bare negation of
+      confirmation criterion 3 (which only requires a passing test to exist) -- #2
+      requires an actual behavioral regression slipping past that test undetected, a
+      materially different and more specific claim. #3 (new crate lands with zero
+      human-visible record anywhere) is the closest to a direct negation of confirmation
+      criterion 5, but is still a concretely checkable, non-trivial future observation
+      (checkable via `git log`/`docs/decisions.md` diff) rather than a restatement of
+      "criterion 5 wasn't met" -- accepted as adequate, matching the shape the sibling
+      intent's own disproof_criteria #7-equivalent already uses. #4 (scope creep into
+      M6/A3) has no matching confirmation criterion at all -- purely additive. #5
+      (status advanced without a named AskUserQuestion) is the same T3 process
+      criterion the founding intent's own critique established as legitimate and
+      reused verbatim by convention, not a mirror of any confirmation criterion here
+      either. No disproof criterion was found to be a pure mirror-negation requiring a
+      fix.
+
+      Checked bindings.risks completeness independently: agreed RISK-0002/0004/0005 are
+      the correct and complete set; confirmed RISK-0006/RISK-0007 (hosting/billing,
+      veil-demo deployment) are genuinely out of scope for this mission and correctly
+      left unbound.
+
+      Appending this entry with `history`'s tail at `critiqued` while the file's
+      top-level `status:` remained `declared` produced the same transient mismatch the
+      sibling founding intent's own critique pass hit and resolved the same way (see
+      INT-2026-09-12-001's critiqued entry) — resolved identically here: `status:` is
+      set to `critiqued` in this same edit, matching this entry's own tail, not left at
+      `declared`. Ran `python3 scripts/validate_intents.py --repo-root .` a final time
+      after that change and all fixes above: `[ok] INT-2026-09-12-001 (status:
+      in_progress)`, `[ok] INT-2026-09-13-001 (status: critiqued)`, 2 intent(s) valid.
+      Schema shape (required fields, id-matches-directory, kind/status/risk_tier
+      vocabulary, single-entry pre-critique history starting at `declared`) matches
+      both the validator's own requirements and sibling INT-2026-09-12-001's
+      conventions exactly.
+
+      ADDENDUM 2026-09-13 (Codex cross-model pass, doubt-driven-development mechanism,
+      `codex exec --sandbox read-only -C . -`, explicit per-invocation user
+      authorization this session via AskUserQuestion): returned 13 findings, four of
+      them Blocker-severity, against ARTIFACT (this file, post-single-model-critique)
+      + CONTRACT (the validator, governance.yaml, intent-driven-development.md's T2/T3
+      rule, and re-runnable grounding commands). Codex disclosed it could not execute
+      `cargo test` in its own read-only sandbox (`target/debug/.cargo-build-lock`:
+      Operation not permitted) and said so explicitly rather than silently skipping
+      that check — read the test source directly instead, consistent with this
+      mechanism's own disclosure norm. Reconciled against live repo state directly
+      (not taken on Codex's word), precedence order per doubt-driven-development's
+      RECONCILE step:
+
+      VALID + ACTIONABLE, fixed in this file (independently re-verified before fixing,
+      not merely accepted): (1) confirmation criteria 1-2 permitted a benign direct
+      API-key call to satisfy the hypothesis without ever exercising masking — fixed:
+      criterion 1 now requires a planted synthetic sensitive value be masked then
+      correctly demasked. (2) no production `vg` subcommand starts vg-proxy today
+      (confirmed: grepped crates/vg-cli/src/main.rs, found no server/listen/bind path;
+      confirmed crates/vg-proxy/src/session.rs's UnregisteredAddr fail-closed path is
+      real) and the original text left the A2/A3 boundary undefined — fixed: new
+      criterion 2 explicitly permits a minimal dev-harness listener (reusing the
+      existing crates/vg-proxy/tests/server_smoke.rs pattern, confirmed to exist and
+      already prove real end-to-end masked forwarding against a mock upstream) while
+      explicitly excluding A3's production state-dir/keychain bootstrap, and the
+      A3-scope-creep disproof criterion is reworded to match. (3) streaming was an
+      ungrounded assumption — confirmed directly against docs/decisions.md's
+      2026-08-24 M3 entry ("stream: true is neither detected nor specially handled")
+      and demask_response.rs's unchanged-body behavior: fixed with a new confirmation
+      criterion (non-streaming confirmed or fails closed) and a new disproof criterion
+      (streaming reaches the client with placeholders unresolved). (4) "real TLS" never
+      required certificate validation — fixed: confirmation criterion 3 now requires
+      WebPKI chain validation and hostname matching, no disabled verification; a new
+      disproof criterion fires on an accepted invalid/wrong-host certificate or
+      credentials reaching an unauthenticated origin. (5) the dependency-approval
+      criterion conflated a written record with actual human approval — fixed: now
+      requires the choice be presented via AskUserQuestion (or equivalent) BEFORE
+      landing, both in the confirmation and disproof criteria. (6) governance triggers
+      were undercounted — confirmed `credential_or_secret_changes` and
+      `financial_changes` are both genuinely triggered (first real API-key exercise,
+      first real billable API usage), not just `dependency_changes`; fixed in the
+      risk_tier comment (now cites three triggered categories) and in a new GROUND
+      correction paragraph, plus new confirmation/disproof criteria requiring the real
+      key and any synthetic sensitive value never leak into logs/evidence. (7) risk_tier
+      comment called itself "a departure from sibling precedent" when no `kind:feature`
+      sibling exists to depart from — fixed: reworded to "novel classification by
+      analogy," with the operating-doc gap (no feature-kind tier rule exists) disclosed
+      as a real gap for docs/intent-driven-development.md to close, not papered over.
+      (9) the document/image regression criterion permitted a unit-test-only proof that
+      would stay green even if a TLS/routing refactor bypassed mask_request.rs
+      entirely — fixed: now requires an integration-level test through vg-proxy's
+      actual routing path. (10) bindings.risks cited bare "RISK-0004" against that
+      risk's own registered instruction to use "RISK-0004/VE-RISK-0004/F4" precisely
+      because a same-numbered, unrelated risk exists in veilgremlin's own registry --
+      fixed throughout. Also (10): RISK-0002 was bound on an inaccurate reading --
+      re-read its actual registered `mitigation` text directly and confirmed it is
+      scoped specifically to `docs/architecture.md`'s Integration Status table, not
+      planning-document staleness in general, which this mission does not touch --
+      removed from bindings.risks; RISK-0005 alone (genuinely broader-scoped) covers
+      this mission's own doc-staleness obligations. (11) confirmation criterion 4
+      omitted `--locked`, `cargo-deny`, and `cargo audit` despite
+      `.github/workflows/ci.yml` running all three (confirmed directly) for a
+      dependency-adding change — fixed. Also (11): veilgremlin's own AGENTS.md requires
+      `docs/session-log.md` and `docs/build-log/` entries beyond `next-actions.md` --
+      fixed, added to the same criterion. (12) `owner.responsible_agent` cited
+      veilgremlin main's SHA (`8d094ae`) as though pinning the future implementation
+      branch to it, and `bindings.prs`'s schema holds bare PR numbers with no repo
+      qualifier despite this mission spanning two repos that could both have a
+      same-numbered PR — fixed: the SHA is now explicit "as of declaration" context
+      only with a stated expectation that main will move before kickoff, and a note
+      that any `bindings.prs` entry for a veilgremlin PR must be repo-qualified
+      (e.g. "veilgremlin#NNN").
+
+      VALID TRADE-OFF, documented rather than fully built out: (13) no criteria cover
+      DNS-failure/connect-timeout/bounded-response-buffering/peer-close failure modes
+      for the new network client. Real and correctly named, but full production-grade
+      network hardening across every failure mode is disproportionate to A2's own
+      2-session plan estimate and risks scope-creeping toward A3/production-daemon
+      territory this intent already works to keep separate (finding 2's fix). Not
+      added as a new criterion; named here so the mission's own implementation and
+      docs/next-actions.md are honest about the gap if it isn't closed, the same
+      "named gap, not silently solved" convention M3/M4 already use in this repo's
+      family.
+
+      NOISE / RECONCILED-AS-ALREADY-CORRECT: (8) Codex argued most disproof_criteria
+      were process failures rather than genuine behavioral falsifiers of the
+      hypothesis. Partially right and partially already fixed by findings 1/3/4/6
+      above (the new TLS-certificate, streaming, and secret-leakage disproof criteria
+      are exactly the behavioral falsifiers Codex named as missing) — the remaining
+      original process-criteria (dependency approval, A3 scope creep, unapproved status
+      advance) are retained deliberately: they test real, distinct failure modes this
+      intent's own hypothesis and governance context care about, not filler. (10,
+      partial) Codex also suggested RISK-0001 ("governance baseline incomplete") is
+      "directly materialized" by this intent's own feature-tier gap — considered and
+      not bound: RISK-0001 is registered at ecosystem-review scope, and forcing a bind
+      here would repeat the exact over-broad-citation pattern finding 10's own RISK-0002
+      correction just fixed one paragraph earlier; the feature-tier gap is instead
+      named directly in the risk_tier comment as follow-on work for
+      docs/intent-driven-development.md, which is the more precise fix.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after all fixes above:
+      `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-13-001
+      (status: critiqued)`, 2 intent(s) valid.
+  - status: accepted
+    date: "2026-09-13"
+    by: "dermdunc (via AskUserQuestion, main session)"
+    evidence: >
+      Explicit per-intent AskUserQuestion, asked after both the fresh-context Claude
+      critique and the Codex cross-model critique, with both passes' fixes restated in
+      the question itself: the single-model pass's two fixes (a misattributed D-BETA-1
+      quote, a status/history-tail mismatch), and the Codex pass's four blocker-severity
+      findings by name (criteria satisfiable without proving masking ran; an undefined
+      A2/A3 boundary since no production vg-proxy-listener path exists today; no forcing
+      or detection of non-streaming; "real TLS" not requiring certificate validation) —
+      plus the governance-trigger undercounting, the dependency-approval-timing fix, the
+      RISK-0002 mis-binding removal, and the added CI gates. Answer: "Accept
+      (Recommended)". Asked as its own separate question, not bundled with any other
+      sign-off, satisfying this intent's own T3 named-per-intent-approval disproof
+      criterion.
+  - status: in_progress
+    date: "2026-09-13"
+    by: "claude (main session, kickoff branch agent/claude/a2-real-tls-client in veilgremlin)"
+    evidence: >
+      Mission kickoff. Before any code: created veilgremlin's implementation branch
+      fresh from its own main (git pull, then git checkout -b
+      agent/claude/a2-real-tls-client, forked at 8d094ae). Per confirmation criterion
+      7 (the TLS dependency needs explicit prior human approval, not just a written
+      record), asked the user directly via AskUserQuestion which TLS crate family to
+      use: hyper-rustls + rustls (pure-Rust, matching XREPO-015's own precedent for
+      this family's telemetry-TLS surface) vs. hyper-tls + native-tls (OS-native,
+      diverges from that precedent). Answer: "hyper-rustls + rustls (Recommended)".
+
+      Separately, confirmed this environment has outbound network access to
+      https://api.anthropic.com (a real curl returned 404 at the root path -- expected
+      for a bare root request, confirms DNS/TLS/connectivity work) but no
+      ANTHROPIC_API_KEY set. Per this intent's own disproof criterion against secret
+      leakage, did not ask the user to paste any credential into this session --
+      instead asked how the live-run proof's credential should reach it. User's
+      answer: "we won't use anthropic API we will use the claude code subscription
+      and local cli" -- a material change to how confirmation criteria 1 and 3
+      (formerly worded around "a real API key sourced from the environment") are
+      satisfied.
+
+      This is a material, post-acceptance change per
+      docs/intent-driven-development.md's amendment protocol (T3 requires an
+      amendment file + explicit user approval, not a silent edit): recorded in
+      .hekton/intents/INT-2026-09-13-001/amendment-2026-09-13-001.yaml, grounded in a
+      real check that the claude CLI is installed and on PATH (claude --version ->
+      "2.1.232 (Claude Code)") and that its session credential is not a plaintext
+      file under ~/.claude/ (consistent with OS-keychain-backed storage -- this
+      mission never handles a raw secret). Put the amendment's exact reworded
+      criteria text to the user as its own explicit AskUserQuestion (not inferred
+      from the freeform kickoff answer alone, matching the same named-approval rigor
+      this intent's own acceptance step held itself to) -- answer: "Confirm as
+      drafted". Both confirmation criteria 1 and 3 in this file are updated in place
+      to the amended wording (credential source: the claude CLI's own existing
+      subscription session via ANTHROPIC_BASE_URL redirection, not a
+      separately-obtained Anthropic Console API key); disproof_criteria, risk_tier,
+      and bindings are unaffected, per the amendment file's own "unchanged" section.
+
+      Real Rust implementation work begins after this entry, on the
+      agent/claude/a2-real-tls-client branch in the sibling veilgremlin repo. A real
+      kickoff commit there (via hkt commit --intent INT-2026-09-13-001
+      --intent-status in_progress) will be cited in this intent's next history entry
+      once it exists.
+  - status: accepted
+    date: "2026-09-14"
+    by: "dermdunc (via AskUserQuestion, main session)"
+    evidence: >
+      Second material amendment, per docs/intent-driven-development.md's amendment
+      protocol (in_progress -> accepted is the schema's own designated path for a
+      material amendment approved mid-mission). Real Rust implementation landed
+      first (TLS client, cert validation, streaming guard, document/image
+      integration tests, cargo build/clippy/fmt/test/deny/audit all clean -- see the
+      next in_progress entry for the full build evidence). Running the actual
+      live-run proof (scripts/a2-live-proof.sh) against the real, unmodified claude
+      CLI failed twice, identically, with vg-proxy's own streaming guard correctly
+      firing: the real CLI always sends stream: true at the API layer regardless of
+      --output-format, with no flag to force non-streaming (confirmed by reading
+      claude --help directly, not assumed). This is a real, verified fact about the
+      product, not a bug -- and it means A2's own "non-streaming Claude Code
+      session" framing (inherited from beta-implementation-plan.md's own A2 row) is
+      unsatisfiable by any real CLI session without vg-proxy handling a streaming
+      response at least minimally. Put to the user directly (AskUserQuestion, three
+      options: pull minimal streaming support into this mission now; prove the
+      masking claim without the interactive CLI wrapper; or stop and report the
+      finding). Answer: "Pull minimal streaming pass-through into this mission
+      (Recommended)". Recorded in
+      .hekton/intents/INT-2026-09-13-001/amendment-2026-09-14-001.yaml: a buffer-
+      first SSE demask path (not true incremental streaming, not full M6), gated on
+      the upstream response's own content-type: text/event-stream header;
+      confirmation criteria 1/3 struck of "non-streaming" wording; disproof
+      criterion 1 narrowed from "M6 or A3" scope-creep to "A3 only, plus explicit
+      over-reach bounds on the now-authorized SSE work"; a new confirmation
+      criterion added requiring the live-run proof itself (not just unit tests) to
+      pass via the SSE path. Asked as its own separate AskUserQuestion, not bundled
+      with any other sign-off, satisfying the same T3 named-per-intent-approval
+      discipline this intent's own acceptance and first amendment already held
+      themselves to.
+  - status: in_progress
+    date: "2026-09-14"
+    by: "claude (main session, branch agent/claude/a2-real-tls-client in veilgremlin)"
+    evidence: >
+      Resuming mission work under the amended scope: building stream_demask.rs (the
+      SSE demask path amendment-2026-09-14-001.yaml authorizes), removing
+      mask_request.rs's stream: true block, wiring server.rs to select the
+      streaming vs. non-streaming demask path on the upstream response's own
+      content-type header, and re-running scripts/a2-live-proof.sh against the
+      real claude CLI to confirm the new confirmation criterion this amendment adds.
+  - status: technically_confirmed
+    date: "2026-09-14"
+    by: "claude (main session, REV-0002 second-pass review by a fresh-context subagent)"
+    evidence: >
+      Mission work landed: the SSE demask path, mask_request.rs's stream:true removal, and
+      the TLS/certificate-validation work all built, tested, and committed to veilgremlin
+      (commit 7c0f3ac, PR veilgremlin#73). Running the actual live-run proof
+      (scripts/a2-live-proof.sh) against the real, unmodified claude CLI then found a real,
+      external blocker: the CLI's own system prompt embeds
+      x-anthropic-billing-header: [REDACTED:SECRET] whenever ANTHROPIC_BASE_URL is
+      non-default, which the real Anthropic API rejects outright -- filed as RISK-0014
+      (veilgremlin) and RISK-0008 (this repo). At the user's explicit direction ("let's go
+      with the codex approach"), asked Codex for an independent architectural opinion on the
+      broader "sit in front of multiple harnesses" question this blocker raised -- Codex's
+      answer named a concrete, cheap experiment (Anthropic's own documented
+      CLAUDE_CODE_ATTRIBUTION_HEADER=0 gateway-compatibility setting) before recommending any
+      architecture change. veilgremlin's own `vg run` already injected that exact variable,
+      unexercised in this mission's own proof until tested directly -- set it on the proof's
+      own invocation and it worked: scripts/a2-live-proof.sh now passes end to end against
+      the real CLI (real TLS, real streaming, real masking/demasking, real subscription
+      auth). RISK-0014/RISK-0008 both closed same day.
+
+      Per intent-choreography's own "Two-Pass Discipline," ran a second, fresh-context
+      critique pass (REV-0002, .hekton/review-log.yaml) against the ACTUAL SHIPPED
+      IMPLEMENTATION -- not the intent text a second time -- before promoting this status.
+      That pass independently re-ran every verification command for real (not from
+      transcript/cache): cargo build/clippy/fmt/test --locked, cargo deny check, cargo
+      audit, all clean; and re-ran scripts/a2-live-proof.sh itself for real against the real
+      Anthropic API, confirming the pass. It attacked the TLS/SSE code directly (dead-code
+      branches, SSRF/host-injection surface, credential leakage in error Display impls,
+      mutex-guarded binding-store races) and found nothing exploitable. It found one real,
+      non-blocking gap: docs/session-log.md and the existing build-log entry in veilgremlin
+      were stale, still narrating the pre-fix blocked state -- fixed in place (a new
+      session-log entry and a new build-log entry,
+      docs/build-log/2026-09-14-the-fix-was-already-in-the-repo.md). It also checked and
+      classified as non-blocking: the kickoff approval named "hyper-rustls + rustls" but the
+      shipped code uses raw rustls/tokio-rustls directly (disclosed in upstream.rs's own doc
+      comment, stays within the approved rustls family -- an imprecise crate name in the
+      approval record, not an unapproved dependency). No disproof_criteria fired. Verdict:
+      genuinely ready for technically_confirmed.
+
+      bindings.prs updated to cite both open PRs (veilgremlin#73, veil-ecosystem#27) and
+      bindings.risks to include this repo's own RISK-0008. Neither PR is merged yet --
+      provisionally_confirmed is a separate, later transition tied to that event.

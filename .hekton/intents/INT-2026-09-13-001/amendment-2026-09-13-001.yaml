@@ -1,0 +1,105 @@
+# Material amendment to INT-2026-09-13-001, post-acceptance. Per
+# docs/intent-driven-development.md's amendment protocol: "anything material gets an
+# amendment file beside the intent and, for T2/T3, explicit user approval before work
+# continues." This intent is T3. The original hypothesis text is not edited — only
+# confirmation_criteria's credential-sourcing mechanism changes; the hypothesis
+# ("proving both with one real, live, non-streaming Claude Code session") already
+# named "Claude Code session" as the proof vehicle and is unaffected.
+#
+# GROUND for this amendment: at mission kickoff, asked the user how the real
+# Anthropic credential should reach the live-run proof without appearing in this
+# session's own transcript (per the intent's own disproof criterion against secret
+# leakage). User's answer: "we won't use anthropic API we will use the claude code
+# subscription and local cli" — i.e. no separately-obtained Anthropic Console API key
+# at all; the live-run proof authenticates via the real `claude` CLI's own existing
+# subscription session (the same session this mission is being run under), redirected
+# at vg-proxy via ANTHROPIC_BASE_URL, per docs/next-actions.md's own M5 framing
+# ("ANTHROPIC_BASE_URL pointing at the daemon... a real sandboxed session").
+# Confirmed `claude` CLI is installed and on PATH (`claude --version` ->
+# "2.1.232 (Claude Code)"); its OAuth/session credential is managed by the CLI itself
+# (not visible in ~/.claude/ as a plaintext file — consistent with OS-keychain-backed
+# storage), so neither this mission nor its implementation ever handles, requests, or
+# is handed a raw secret value directly. `x-api-key`/`authorization` were already
+# allow-listed in FORWARDED_HEADERS before this mission started, so whichever header
+# shape the CLI's own session actually sends (API-key-style or OAuth-bearer-style)
+# already has a forwarding path — this correction changes WHERE the credential comes
+# from, not vg-proxy's own header-handling surface.
+intent_id: "INT-2026-09-13-001"
+amends_status: "accepted"
+date: "2026-09-13"
+summary: >
+  The live-run proof's credential source changes from "a real API key sourced from
+  the environment" (implying a separately-obtained Anthropic Console developer API
+  key, which this mission would need the user to create and expose) to "the real
+  `claude` CLI's own existing subscription-authenticated session, redirected at
+  vg-proxy via ANTHROPIC_BASE_URL." No raw secret is obtained, handled, or exposed by
+  this mission at any point; the CLI manages its own credential exactly as it already
+  does for every other Claude Code session, including this one.
+changed_confirmation_criteria:
+  - before: >
+      "A live-run proof (this repo's own veil-demo *-proof.sh precedent, or an
+      equivalent real invocation recorded in this mission's own evidence) routes one
+      real, non-streaming Claude Code session through vg-proxy, over a real TLS
+      connection to https://api.anthropic.com, using a real Anthropic API key — AND
+      the proof plants a synthetic sensitive value (e.g. a fake email/phone/secret)
+      in the prompt that is masked before egress and correctly demasked in the real
+      response reaching the wrapped client. A benign request/response round-trip that
+      never exercises masking does NOT satisfy this criterion..."
+    after: >
+      "A live-run proof (this repo's own veil-demo *-proof.sh precedent, or an
+      equivalent real invocation recorded in this mission's own evidence) routes one
+      real, non-streaming Claude Code CLI session through vg-proxy — the real `claude`
+      binary, invoked non-interactively (e.g. `claude -p '<prompt>'`), with
+      ANTHROPIC_BASE_URL redirected at vg-proxy's listener, authenticating via the
+      CLI's own existing subscription session, NOT a separately-obtained Anthropic
+      Console API key — over a real TLS connection from vg-proxy to
+      https://api.anthropic.com. AND the proof plants a synthetic sensitive value
+      (e.g. a fake email/phone/secret) in the prompt that is masked before egress and
+      correctly demasked in the real response reaching the wrapped client. A benign
+      request/response round-trip that never exercises masking does NOT satisfy this
+      criterion. No Anthropic Console API key is created, requested, or handled by
+      this mission at any point."
+  - before: >
+      "Anthropic API-key mode works for real: a real API key sourced from the
+      environment reaches the real https://api.anthropic.com over an AUTHENTICATED
+      TLS connection — standard WebPKI certificate chain validation and hostname
+      matching against api.anthropic.com, no disabled/bypassed certificate
+      verification — via the x-api-key header (already allow-listed in
+      FORWARDED_HEADERS today), and a real, non-error response returns through
+      vg-proxy to the wrapped client."
+    after: >
+      "The real `claude` CLI's own existing session credential reaches the real
+      https://api.anthropic.com over an AUTHENTICATED TLS connection — standard
+      WebPKI certificate chain validation and hostname matching against
+      api.anthropic.com, no disabled/bypassed certificate verification — via whichever
+      header the CLI's own session actually sends (x-api-key or authorization, both
+      already allow-listed in FORWARDED_HEADERS today, unchanged by this amendment),
+      and a real, non-error response returns through vg-proxy to the wrapped client."
+  - before: >
+      "docs/next-actions.md's M5 entry (veilgremlin)... 'Anthropic API-key mode'..."
+      (title and hypothesis text retain the plan's own M5/"API-key mode" terminology,
+      which this amendment does not rename — see rationale below.)
+    after: >
+      No change to title/hypothesis wording. Rationale for not renaming: the plan's
+      own M5 milestone name ("real Claude Code, Anthropic API-key mode") is the
+      existing, cited vocabulary this mission traces to; this amendment narrows HOW
+      that milestone's real-credential requirement is satisfied (CLI subscription
+      session vs. a separately-obtained key), not WHAT the milestone claims to prove
+      (real, non-mock authentication reaching the real endpoint). Renaming the title
+      would create a drift between this intent and the plan document's own section
+      name for no benefit; the substantive correction lives in the criteria text
+      itself and in this amendment's own evidence trail.
+unchanged: >
+  risk_tier (T3), the three triggered governance categories (dependency_changes,
+  credential_or_secret_changes, financial_changes — still triggered: this is still
+  the first real, billable Claude Code session run through vg-proxy, even though no
+  separate API key is exposed), all other confirmation_criteria, all
+  disproof_criteria (including the secret-leakage disproof criterion, which this
+  amendment makes easier to satisfy rather than harder, since no raw key is ever
+  handled), bindings, and owner.
+history_entry_pointer: >
+  Recorded in intent.yaml's own history as an in_progress-adjacent note citing this
+  file, per this repo's convention that material amendments live beside the intent
+  file rather than overwriting it.
+approved_by: "dermdunc (via AskUserQuestion, main session, 2026-09-13) — 'Confirm as
+  drafted'. See intent.yaml history for the full record."
