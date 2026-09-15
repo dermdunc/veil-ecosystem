@@ -472,6 +472,7 @@ bindings:
     - "veilgremlin#74"
     - "veilgremlin#75"
     - "veilgremlin#76"
+    - "veilgremlin#77"
     - "veil-ecosystem#28"
     - "veil-ecosystem#29"
 history:
@@ -794,3 +795,82 @@ history:
       Ran `python3 scripts/validate_intents.py --repo-root .` after this edit: `[ok]
       INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001 (status:
       in_progress)`, 2 intent(s) valid.
+
+      UPDATE 2026-09-15 (same session, H2c landed): built on
+      agent/claude/h2b-codec-trait-extraction (not main) since H2c's own scope
+      (upstream.rs's forward/buffer_response, server.rs's collect_body) is exactly
+      the code H2b just restructured -- stacking avoided an avoidable merge conflict
+      between two PRs the plan's own Start-order table treats as independently
+      startable but that touch the same files. Landed as veilgremlin commits
+      `d36e458`/`79a7db5` (branch agent/claude/h2c-bounds-timeouts, PR
+      veilgremlin#77, based on PR veilgremlin#76, neither yet merged). All of H2c's
+      own confirmation_criteria met: server.rs::collect_body and
+      upstream.rs::buffer_response both bounded (MAX_REQUEST_BODY_BYTES 32 MiB,
+      MAX_RESPONSE_BODY_BYTES 64 MiB) with 413/502 fail-closed behavior; five
+      separately-named timeouts (upstream.rs::Timeouts: connect, response_headers,
+      idle_body, streaming_idle at 300s matching GROUND-13/14's real vendor numbers,
+      total_request), each with its own dedicated, isolated, fast test in the new
+      crates/vg-proxy/tests/upstream_timeouts.rs (8 tests); a dedicated test proving
+      a genuine multi-gap pause under streaming_idle's own reset mechanism survives
+      (strengthened per this intent's own criterion, see below); scripts/a2-live-proof.sh
+      re-run and passing, unregressed. cargo build/clippy/fmt/test --locked (three
+      repeated full workspace runs, no flakes) and cargo bench --workspace --locked
+      --no-run all clean. Same cargo deny check/cargo audit caveat as H2b's own
+      correction above applies identically here (same uncommitted rustls fix
+      carried in the local working tree, same pre-existing, separately-tracked
+      RUSTSEC-2026-0285 finding expected in this PR's own real CI) -- not repeated
+      as a separate correction since the mechanism is now already on record.
+
+      Two review rounds, both finding and fixing real issues -- a genuinely
+      productive second round this time, unlike H2b's Codex pass which mostly
+      confirmed correctness: a fresh-context single-model pass found two bugs, both
+      in the test suite rather than production code (a near-zero connect-timeout
+      test that flaked non-deterministically under full-workspace-suite load,
+      racing a 1ns deadline against a real fast connect and landing on the wrong
+      error variant after a genuine 30-second wait; and a classic async-Rust
+      footgun where a mock server's `_stream`-named closure parameter, never
+      referenced inside its own `async move` body, dropped -- closing the
+      connection -- before the future was ever polled, defeating the
+      response-headers-timeout test). A following Codex cross-model pass (explicit
+      per-invocation authorization via AskUserQuestion this session) found and this
+      session fixed four more, one flagged Blocker by Codex's own severity
+      assessment: (1) the just-fixed slow-stream survival test's own single-pause
+      design (300ms under a 5s test budget) was itself too generous to distinguish
+      correct per-frame idle-reset from a regression to one fixed deadline computed
+      at stream-start -- rewritten to two gaps summing over the budget while
+      neither alone exceeds it, the only shape that actually falsifies the
+      regression; also explicitly disclosed for the first time that no unit test
+      can prove the real 300s *production default* itself is well-chosen against
+      real vendor behavior, only that the reset mechanism is wired correctly for
+      whatever value is configured -- that claim rests on the vendor documentation
+      and the live-run proof, not on any fast synthetic test. (2) response_headers's
+      own doc comment claimed a narrower scope ("from a fully-sent request") than
+      the code actually covers (send_request wraps request upload too, not just the
+      wait for headers) -- both the doc and the error message corrected to name the
+      real scope rather than overclaiming a narrower one. (3) the connect-timeout
+      test's own fix (192.0.2.1, RFC 5737 TEST-NET-1) was itself found non-hermetic
+      -- RFC 5737 only recommends, does not guarantee, silent packet dropping, and
+      Codex's own sandboxed execution got an immediate PermissionDenied there
+      instead of a timeout, direct proof of real environment-dependence -- replaced
+      with a fully deterministic loopback design (a real TCP accept, followed by a
+      stalled TLS handshake) that also newly covers connect's TLS-handshake half,
+      previously untested entirely. (4) SSE content-type matching
+      (`starts_with("text/event-stream")`) was neither exact nor case-insensitive
+      per RFC 9110 §8.3.1, and H2c had copied this pre-existing A2-era bug from
+      server.rs into a second, duplicate copy in upstream.rs rather than
+      centralizing it -- fixed with one shared, correct implementation
+      (upstream::is_event_stream_content_type) used by both call sites. A sixth,
+      minor finding (hostname DNS resolution via tokio's spawn_blocking cannot be
+      cancelled once started, so a stalled resolver can accumulate blocking-pool
+      work across repeated timed-out requests) was named and accepted as a
+      documented residual limitation rather than fixed, matching this family's
+      "named gap, not solved by this milestone" convention -- a fully async
+      resolver would close it, out of this milestone's own scope.
+
+      H1 remains open under this same intent -- status stays `in_progress` still,
+      not advanced to `technically_confirmed`, until it too meets its own
+      confirmation_criteria per this intent's own lifecycle rule.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this update:
+      `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
+      (status: in_progress)`, 2 intent(s) valid.
