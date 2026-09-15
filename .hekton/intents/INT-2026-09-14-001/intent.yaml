@@ -745,9 +745,28 @@ history:
       prefix match) and recorded in veilgremlin's own docs/decisions.md (2026-09-15
       entry, cross-referenced here rather than duplicated); scripts/a2-live-proof.sh
       re-run twice (before and after the Codex critique's own fixes) and passes end to
-      end both times; cargo build/clippy/fmt/test --locked, cargo deny check, cargo
-      audit, cargo bench --workspace --locked --no-run all clean (47 unit tests, up
-      from 44). Two review rounds run per this intent's own confirmation_criteria: a
+      end both times; cargo build/clippy/fmt/test --locked and cargo bench --workspace
+      --locked --no-run all clean (47 unit tests, up from 44).
+
+      CORRECTION, caught checking veilgremlin PR#76's real CI rather than trusting the
+      local run: cargo deny check/cargo audit were run LOCALLY against a working tree
+      that had an unrelated, uncommitted rustls 0.23.44->0.23.45 bump (fixing
+      RUSTSEC-2026-0285, a separate branch, agent/claude/fix-rustsec-2026-0285,
+      blocked on the user's own manual commit by this machine's Cargo.lock
+      git-guardrail) mixed in from earlier in the same session -- so the local "all
+      clean" claim did not reflect what PR#76 itself actually contains. PR#76's real
+      CI (fresh checkout, no working-tree carryover) correctly shows cargo-deny
+      check/cargo-audit FAILING on that same pre-existing RUSTSEC-2026-0285 finding,
+      since this PR deliberately left Cargo.lock untouched (out of H2b's own scope).
+      This is not a regression H2b introduced -- it is the same finding, tracked
+      separately, not yet mergeable due to the same git-guardrail this session cannot
+      self-bypass. H2b's own real CI is green on every gate its own diff touches
+      (fmt/clippy/build/test/bench); deny/audit will go green once
+      agent/claude/fix-rustsec-2026-0285 merges (or its Cargo.lock bump is rebased
+      into this branch) -- named here rather than left as an inaccurate "all clean"
+      claim.
+
+      Two review rounds run per this intent's own confirmation_criteria: a
       fresh-context single-model pass (found and fixed 2 real bugs: a header
       misclassification that would have spammed the F4 review-candidate log on every
       request; a denylist gap missing "key"/"auth" despite the codec's own named
