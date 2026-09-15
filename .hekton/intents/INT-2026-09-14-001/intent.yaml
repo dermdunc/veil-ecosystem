@@ -199,7 +199,7 @@ schema_version: "tektograph-1.0"
 intent_id: "INT-2026-09-14-001"
 title: "Track H, first slice: Codex interception+auth spike (H1) + codec trait extraction (H2b) + request/response bounds and timeouts (H2c) in veilgremlin's vg-proxy"
 kind: feature
-status: accepted
+status: in_progress
 # T3 -- by-analogy extension of docs/intent-driven-development.md's kind:decision-only
 # T2/T3 rule, the SAME extension INT-2026-09-13-001 first applied and explicitly
 # disclosed as a real operating-doc gap rather than a settled precedent. Triggered
@@ -471,6 +471,7 @@ bindings:
   prs:
     - "veilgremlin#74"
     - "veilgremlin#75"
+    - "veilgremlin#76"
     - "veil-ecosystem#28"
     - "veil-ecosystem#29"
 history:
@@ -723,3 +724,54 @@ history:
       Ran `python3 scripts/validate_intents.py --repo-root .` after setting
       `status: accepted`: `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok]
       INT-2026-09-14-001 (status: accepted)`, 2 intent(s) valid.
+  - status: in_progress
+    date: "2026-09-15"
+    by: "claude (main session, branch agent/claude/h2b-codec-trait-extraction in
+      veilgremlin)"
+    evidence: >
+      Per this intent's own lifecycle clarification (risk_tier comment): advances to
+      `in_progress` at the first of H1/H2b/H2c's real kickoff commits. H2b (codec
+      trait extraction) landed first: veilgremlin commit `03f40ab`
+      (branch agent/claude/h2b-codec-trait-extraction, PR veilgremlin#76, not yet
+      merged). All of H2b's own confirmation_criteria met: `crates/vg-proxy/src/codec`
+      (Codec trait) + `crates/vg-proxy/src/codec/anthropic/` (sole implementation,
+      holding the moved route-classification match arms, mask_request.rs,
+      demask_response.rs, stream_demask.rs verbatim); grep-verified zero
+      Anthropic-shaped identifiers (FORWARDED_HEADERS, content_block_delta, tool_use,
+      literal Anthropic/Bedrock path strings) in server.rs/upstream.rs/route.rs at the
+      top level; Track H's own fork F4 (header-forwarding policy) decided directly
+      with the user before implementation (prefix allowlist + five named singletons,
+      unchanged forwarding behavior + a credential-shaped denylist that wins over any
+      prefix match) and recorded in veilgremlin's own docs/decisions.md (2026-09-15
+      entry, cross-referenced here rather than duplicated); scripts/a2-live-proof.sh
+      re-run twice (before and after the Codex critique's own fixes) and passes end to
+      end both times; cargo build/clippy/fmt/test --locked, cargo deny check, cargo
+      audit, cargo bench --workspace --locked --no-run all clean (47 unit tests, up
+      from 44). Two review rounds run per this intent's own confirmation_criteria: a
+      fresh-context single-model pass (found and fixed 2 real bugs: a header
+      misclassification that would have spammed the F4 review-candidate log on every
+      request; a denylist gap missing "key"/"auth" despite the codec's own named
+      singletons being x-api-key/authorization) and a Codex cross-model pass (explicit
+      per-invocation user authorization via AskUserQuestion this session; found and
+      this session fixed 4 more: a real defense-in-depth regression in
+      upstream::forward now documented rather than reversed per D-H-1; a missing
+      observability path for denylist-denied headers, closed via the new
+      SelectedHeaders::denied_by_credential_pattern; weak count-only test assertions,
+      strengthened to identity/value; stale doc-comment paths from the file moves.
+      Two Codex findings reconciled as contract misreads, not defects, both explicitly
+      recorded in the veilgremlin decisions.md entry rather than silently dropped).
+      veilgremlin's own docs/next-actions.md and docs/build-log/ updated
+      (docs/session-log.md is a local-only, gitignored file in this repo as of an
+      earlier housekeeping commit -- not part of the tracked tree, so not part of
+      this criterion's own commit). This repo's own beta-implementation-plan.md
+      Progress tracker and veilgremlin's Track H plan §4 H2b row both updated to
+      match (veil-ecosystem commit `5826e95` on the still-open beta-bar-widen-codex
+      branch, PR veil-ecosystem#28).
+
+      H2c and H1 remain open under this same intent -- status stays `in_progress`,
+      not advanced to `technically_confirmed`, until all three independently meet
+      their own confirmation_criteria per this intent's own lifecycle rule.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this edit: `[ok]
+      INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001 (status:
+      in_progress)`, 2 intent(s) valid.
