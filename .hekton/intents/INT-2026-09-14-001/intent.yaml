@@ -1,0 +1,876 @@
+# GROUND — real commands/reads run before declaring, 2026-09-14, on branch
+# agent/claude/track-h-intent-h1-h2b-h2c (this repo, veil-ecosystem):
+#
+#   Read veilgremlin/docs/architecture/multi-harness-proxy-plan.md ("Track H") in full,
+#   per direct user instruction that it is the source of truth for Track H's scope and
+#   sequencing. Confirmed via `git -C ../veilgremlin merge-base --is-ancestor 95d838a
+#   origin/main` that the plan (commit 95d838a) is a real ancestor of veilgremlin's
+#   main (merged as PR #74, merge commit 06204e3). CORRECTED AT CODEX CROSS-MODEL
+#   CRITIQUE: "not still a draft" overclaimed what merging proves -- the plan's own
+#   Status line reads "proposed, not ratified. Supersedes nothing until reviewed"; being
+#   merged to main makes it durable and citable, not ratified. This intent treats it as
+#   the source of truth for SCOPE/SEQUENCING per direct user instruction, not as a
+#   ratified architecture decision in its own right.
+#   Read veilgremlin/docs/next-actions.md's "Now" section and this repo's own
+#   docs/beta-implementation-plan.md Progress tracker in full, per the same
+#   instruction, to confirm state had not drifted since the plan's stated date
+#   (2026-09-14). CORRECTED at critique (the original text here misquoted this row --
+#   fixed after an independent re-read found no such string in the file): the Progress
+#   tracker's own row (line 19, before this session's own D-BETA-8 edit lands on a
+#   separate branch) actually reads "Tracks 1-2 (Phase A/B) and Phases C/D/E | Not
+#   started | ... no Track 1/2 work has started." -- not the "(A3-A8)"/"(Phase
+#   B/C/D/E)" breakdown originally quoted here, which does not appear anywhere in the
+#   file. The substantive conclusion is unaffected: A3 (production daemon bootstrap)
+#   has NOT landed on main either way. This directly blocks Track H's H0 milestone
+#   (needs A3 per the plan's own §4 table) and therefore H4 (needs H0), so neither is
+#   in this intent's scope.
+#   Per the plan's own §4 "Start order": confirmed H2b and H2c have no blocking
+#   dependencies (neither depends on H1's findings, per the plan's explicit text) and
+#   H1 is blocked only on fork F15 (fixture-governance policy) being ANSWERED before
+#   work starts. CORRECTED AT CODEX CROSS-MODEL CRITIQUE: "a governance answer, not a
+#   session of work" understated this -- the plan's own F15 text (§7) calls the actual
+#   scrub-step/.gitignore/pre-commit-check controls "a precondition for H1 starting,
+#   not a review-time cleanup" (critique #16). Answering F15's policy question (done
+#   this session, see round 3 below) is a governance answer; building and demonstrating
+#   its controls is real work this intent's own confirmation_criteria now require as an
+#   entry gate BEFORE H1's first real Codex capture, not merely a closing checklist item
+#   -- see confirmation_criteria below, revised accordingly.
+#   Interviewed the user directly (five AskUserQuestion rounds this session, not
+#   assumed -- CORRECTED at critique: originally miscounted as "four" while five were
+#   listed) rather than defaulting to "start whatever has zero blockers":
+#     1. Milestone selection -- multiSelect over {H2b, H2c, H1, "wait and start A3
+#        first"}. Answer: H2b + H2c + H1 (not "wait for A3" -- H0/H4 correctly stay
+#        out of this intent's scope).
+#     2. Fork F1 (does Track H gate the beta?) -- surfaced explicitly per the user's
+#        own instruction, with the plan's recommendation (a) stated. Answer: (b),
+#        widen the beta bar to include Codex -- against the plan's own recommendation.
+#     3. Fork F15 (fixture-governance policy, blocks H1 start) -- Answer: (b),
+#        synthetic seeded prompts only, scrubbed, never committed raw (the plan's own
+#        recommendation).
+#     4. Follow-up on (b)'s exact scope, since "widen the beta bar" is itself
+#        under-specified -- Answer: "Full Codex parity with Claude Code" (H0-H4
+#        complete, H5 only if H1's verdict forces it), NOT merely "a documented
+#        mechanism decision" or "H1+H2a/b/c+H3+H4 without full H0 parity."
+#     5. Whether to formally re-ratify the widened beta bar in
+#        veil-ecosystem/docs/decisions.md before scoping this intent, or defer that
+#        ratification -- Answer: ratify first (recommended path).
+#   Acted on answer 5 before declaring this intent, in this same session:
+#   - veil-ecosystem branch agent/claude/beta-bar-widen-codex, commit c19a155:
+#     D-BETA-8 ratified in docs/decisions.md; docs/beta-implementation-plan.md §1
+#     condition 1, Progress tracker, and §5 critical path all amended to require
+#     Codex parity. `python3 scripts/eco_checker.py` ran clean (0 errors; warning
+#     count is branch/network-state-dependent -- re-running it on THIS intent's own
+#     branch, forked later from the same main, returned 0 errors/1 warning, not the
+#     6 seen at commit time on the D-BETA-8 branch; CORRECTED AT CODEX CROSS-MODEL
+#     CRITIQUE, which caught the original fixed "6" figure as non-reproducible. The
+#     load-bearing fact -- 0 errors both times -- holds) before commit. PR opened:
+#     https://github.com/dermdunc/veil-ecosystem/pull/28 (not yet merged -- this
+#     intent's own branch was forked from main BEFORE that PR, so D-BETA-8's text is
+#     not physically present in this branch's docs/decisions.md; it is cited here by
+#     commit/PR reference, matching this registry's own established cross-branch
+#     citation convention for in-flight PRs, e.g. INT-2026-09-13-001's own citation of
+#     "veilgremlin#73" while that PR was still open).
+#   - veilgremlin branch agent/claude/track-h-f1-decision, commit 891faa6: recorded
+#     F1's decision in the Track H plan itself (§7's F1 row, plus a pointer at the top
+#     of the document) rather than silently rewriting the plan's own now-stale §0/§6
+#     statements, per that document's own evidence-trail discipline. PR opened:
+#     https://github.com/dermdunc/veil-proxy/pull/75 (not yet merged).
+#   Read docs/intent-driven-development.md's full T2/T3 boundary section directly
+#   (lines 115-123 as currently numbered): confirmed the operating doc's tier rule is
+#   still written strictly for `kind: decision` -- the gap INT-2026-09-13-001's own
+#   critique named and disclosed (rather than silently resolved) is still open. This
+#   is the SECOND `kind: feature` intent in this registry to apply that intent's own
+#   by-analogy extension (T3 if the intent's substance triggers a
+#   `.hekton/governance.yaml` `human_required` `approval_policy` category); disclosed
+#   again here, not treated as now-settled by one prior use.
+#   Read .hekton/governance.yaml in full: the same seven `human_required` categories
+#   as INT-2026-09-13-001 cited. Assessed each against THIS intent's actual scope
+#   (not copied from A2's assessment): `dependency_changes` -- NOT triggered this time
+#   (see below, a real difference from A2). `credential_or_secret_changes` --
+#   triggered: H1 is this family's first real exercise of Codex/OpenAI credentials
+#   (ChatGPT sign-in and/or API-key `env_key`), a materially new credential surface.
+#   `financial_changes` -- triggered: H1's live-run proof (plan §4's own H1 exit gate
+#   requires "live-run evidence") makes real, billable OpenAI API calls, this
+#   family's first. `personal_data_changes` -- CORRECTED AT CODEX CROSS-MODEL CRITIQUE
+#   to TRIGGERED: the original text excused this because F15 confines H1's *prompt
+#   content* to synthetic seeds, but the plan's own F15 text (§7) warns real Codex
+#   captures "can contain bearer tokens, prompts, secrets, account identifiers,
+#   conversation metadata and model output" -- synthetic prompt CONTENT does not make
+#   the surrounding session/account metadata synthetic, and ChatGPT-sign-in auth mode
+#   necessarily exposes real account/session identifiers to the record-and-relay
+#   listener regardless of prompt content. `production_changes`, `public_release`,
+#   `destructive_changes` -- not triggered (no beta user is exposed by this intent's
+#   own scope).
+#   Read .hekton/risk-register.yaml in full: this branch's own copy (forked from main
+#   before RISK-0008 existed) holds seven entries, RISK-0001..0007 -- CORRECTED at
+#   critique, the original text here claimed "all eight entries, including RISK-0008
+#   closed 2026-09-14" as if read directly from this file, which is false; RISK-0008
+#   exists only on the separate, still-unmerged veil-ecosystem branch
+#   agent/claude/track1-a2-real-tls-client (commit 806f372), the same cross-branch-
+#   citation situation as D-BETA-8/PR#28 and F1/PR#75 above, but that discipline
+#   (cite by branch/commit, don't claim it's physically present here) was not applied
+#   to it originally; applied now. Assessed bindings directly against this intent's
+#   own scope,
+#   not inherited from A2's: RISK-0005 (component docs can go stale relative to code)
+#   binds -- this intent's own confirmation_criteria require updating veilgremlin's
+#   next-actions.md/session-log/build-log and this repo's beta-implementation-plan.md
+#   again once the mission closes. VE-RISK-0004 (self-asserted demask authorisation --
+#   this repo's own risk-register.yaml note requires calling it "RISK-0004/
+#   VE-RISK-0004/F4," never bare "RISK-0004") considered and NOT bound: unlike A2,
+#   this intent's scope does not touch the real masking data plane's demask-
+#   authorisation surface at all -- H2b/H2c are internal codec/bounds refactors of the
+#   existing Anthropic-only pipeline, and H1 is a throwaway interception/auth spike
+#   against Codex's own config surface, not a `vg demask` call path. Binding it here
+#   would repeat the exact over-broad-citation pattern INT-2026-09-13-001's own
+#   critique corrected for RISK-0002.
+#   NAMING COLLISION FOUND AT CODEX CROSS-MODEL CRITIQUE, disclosed and fixed here:
+#   VE-RISK-0004's own registered short name "F4" is UNRELATED to, and collides with,
+#   Track H's OWN fork F4 (header-forwarding policy, `multi-harness-proxy-plan.md`
+#   §7) -- a real fork this intent's own H2b scope directly binds, since H2b's own
+#   confirmation criteria move FORWARDED_HEADERS "under F4's resolved policy" (plan
+#   §4's H2b row, verbatim). The two "F4"s are DIFFERENT THINGS in DIFFERENT
+#   documents. This file uses "VE-RISK-0004" for the ecosystem risk-register item
+#   throughout (never bare "F4" for it), and "Track H F4" for the header-forwarding
+#   fork -- see the new H2b confirmation_criteria entry requiring Track H F4 to be
+#   decided before H2b merges, per the plan's own "Decide before: H2b merge" row.
+#   RISK-0008
+#   (closed, not present in this branch's own risk-register.yaml -- see correction
+#   above) is NOT bound: it is a closed, Claude-CLI-specific risk with a linked
+#   veilgremlin-side twin entry, not this intent's own scope, but is genuinely
+#   informative precedent for H1: the plan's own GROUND-12 and
+#   H1 row explicitly instruct "look specifically for Claude-Code-style defensive
+#   behaviours against non-default base URLs" in Codex -- i.e., expect a same-shaped
+#   surprise, not the same risk recurring.
+#   Grepped .hekton/cross-repo-deps.yaml's 19 XREPO entries (title lines): confirmed
+#   none cover Track H / Codex support -- single-repo veilgremlin work the cross-repo
+#   registry structurally does not track, same convention the Track H plan's own §6
+#   states for telemetry-schema changes and the same conclusion A2's own intent
+#   reached for itself.
+#   Ran real commands in ../veilgremlin (sibling repo, where this mission's actual code
+#   lands):
+#   - `git checkout main && git pull`: confirmed at `06204e3` (merge of PR #74,
+#     carrying the Track H plan itself).
+#   - Grepped `crates/vg-proxy/src/upstream.rs` for `FORWARDED_HEADERS`: confirmed the
+#     const exists at line 132, copied into the forward path at line 262 -- the exact
+#     H2b extraction target the plan's §1.2 item 3 names.
+#   - Read `crates/vg-proxy/src/route.rs` in full: confirmed `classify()` is
+#     Anthropic/Bedrock-only, deny-by-default, matching plan §1.2 item 4 exactly --
+#     H2b's other extraction target.
+#   - Grepped `crates/vg-proxy/src/server.rs`'s `collect_body` (lines 306-311):
+#     confirmed it collects the entire inbound body via `.collect().await` with no
+#     length check and no timeout wrapper -- matching plan §1.2 item 9's unbounded-
+#     request claim exactly, independently re-verified rather than trusted from the
+#     plan's own prose. This is H2c's request-body-bound target.
+#   - Read `crates/vg-proxy/Cargo.toml` in full: confirmed `rcgen = "0.13"` is a
+#     `[dev-dependencies]` entry (line 58, under the `[dev-dependencies]` header at
+#     line 51 -- CORRECTED at critique, originally miscited as line 55), not a
+#     production dependency -- matching the plan's own claim exactly.
+#     No dependency this intent's own scope (H1/H2b/H2c) needs to add was found absent
+#     from the workspace requiring a new crate: H2c's timeout work is expected to use
+#     `tokio::time::timeout`/`tokio::time::sleep`. CORRECTED at critique: `tokio`'s
+#     `time` feature is in fact already enabled today (`[dependencies]` section, line
+#     22: `features = ["rt-multi-thread", "net", "macros", "time"]`) -- the original
+#     claim here that it was "not yet confirmed enabled" was independently re-checked
+#     and found wrong, not merely re-asserted; this strengthens the no-new-dependency
+#     conclusion (H2c needs no Cargo.toml change at all, dev or production). H2b is a
+#     pure internal refactor, no new crate. H1 is explicitly scoped (plan §4) as
+#     "throwaway-code-allowed" testing Codex's own existing config surface
+#     (`openai_base_url`, `model_providers.veil`, `-c` overrides, env vars) -- no new
+#     veilgremlin Rust dependency is named or expected by the plan's own H1 row.
+#     `dependency_changes` is therefore judged NOT triggered for this intent's actual
+#     scope, a real difference from A2 stated explicitly rather than copied forward.
+#   - Confirmed the real `codex` CLI is installed and on PATH, matching the plan's own
+#     evidence register exactly: `codex --version` -> "codex-cli 0.153.4",
+#     `~/.codex/packages/standalone/releases/0.153.4-aarch64-apple-darwin/` present.
+#     H1's spike is executable today without installing anything new.
+#   Checked `ls .hekton/intents/ | grep 2026-09-14` before writing: no match -- serial
+#   001 is free. (This branch was forked from `main`, which does not yet carry
+#   INT-2026-09-13-001 -- that intent lives only on the still-open, unmerged
+#   veil-ecosystem PR #27. Read it directly via `git show`/`git checkout` on that
+#   branch, in full, for shape/convention precedent (tektograph-1.0 schema, GROUND/FIT
+#   header-comment convention, T3-by-analogy tier reasoning, disproof_criteria
+#   distinctness from confirmation_criteria, owner-identity `dermdunc`) before
+#   returning to this branch to write -- not copied blind.) Ran
+#   `python3 scripts/validate_intents.py --repo-root .` before writing this file
+#   (registry then held only INT-2026-09-12-001): `[ok] INT-2026-09-12-001 (status:
+#   in_progress)`, 1 intent(s) valid.
+
+schema_version: "tektograph-1.0"
+intent_id: "INT-2026-09-14-001"
+title: "Track H, first slice: Codex interception+auth spike (H1) + codec trait extraction (H2b) + request/response bounds and timeouts (H2c) in veilgremlin's vg-proxy"
+kind: feature
+status: in_progress
+# T3 -- by-analogy extension of docs/intent-driven-development.md's kind:decision-only
+# T2/T3 rule, the SAME extension INT-2026-09-13-001 first applied and explicitly
+# disclosed as a real operating-doc gap rather than a settled precedent. Triggered
+# categories for THIS intent's own scope (independently assessed above, not copied
+# from A2): `credential_or_secret_changes` (H1's first real Codex/OpenAI credential
+# exercise), `financial_changes` (H1's live-run proof makes real, billable OpenAI
+# API calls), and `personal_data_changes` (CORRECTED AT CODEX CROSS-MODEL CRITIQUE --
+# H1's record-and-relay listener sees real account/session metadata regardless of
+# synthetic prompt content). `dependency_changes` is NOT triggered this time -- a
+# real difference from A2, stated in GROUND above rather than assumed; broadened at
+# critique to cover any new tool/library, not only Cargo crates (see the matching
+# disproof_criteria entry). Three triggered categories are enough to clear the
+# by-analogy bar on their own.
+#
+# Named composition risk, not papered over: H2b and H2c involve no live network calls
+# and no new credentials -- on their own they would likely sit at T1/T2 by sibling
+# `kind:feature` precedent once one exists. CORRECTED AT CODEX CROSS-MODEL CRITIQUE:
+# calling them "internal refactors" understated their own risk -- the plan's own §6
+# trade-off 3 states H2 explicitly is NOT a no-behavior-change refactor ("it changes
+# routing identity, header policy, timeout behaviour and response-size behaviour...
+# bounds can terminate previously-succeeding long requests"); H2c's timeouts and
+# H2b's F4 header policy are both live behavior changes to the shipped, passing A2
+# proof, not risk-free internal moves. Bundling H2b/H2c into this T3 intent (because
+# the user selected all three together this session, per GROUND above) means their
+# own work inherits H1's T3 process overhead (a named, non-bundled AskUserQuestion at
+# acceptance, cross-model critique) on top of their own real behavior-change risk.
+# Both critique passes (single-model and Codex cross-model) considered whether to
+# split H1 from H2b/H2c into separate intents instead -- Codex's own recommendation
+# was to split; the single-model pass and this file's own judgment land on keeping
+# it bundled, since (a) the user explicitly selected all three together this session
+# via one AskUserQuestion, and re-forking that mid-choreography would substitute this
+# session's own judgment for the user's, and (b) erring toward more scrutiny (T3 on
+# the smaller pieces too) rather than less is the safer direction if the bundling
+# question is wrong. LIFECYCLE CLARIFICATION, added at critique to resolve a real
+# ambiguity Codex identified (three independent PRs under one intent status, with no
+# stated rule for what governs `in_progress`/`technically_confirmed`): this intent
+# advances to `in_progress` at whichever of H1/H2b/H2c lands its own real kickoff
+# commit FIRST, and advances to `technically_confirmed` only once ALL THREE have
+# independently met their own confirmation_criteria above -- a partial landing (e.g.
+# H2b+H2c done, H1 still spiking) keeps the intent at `in_progress` with the partial
+# state named in a history entry, not silently treated as done. If H1's spike proves
+# multi-session, splitting H2b/H2c into their own follow-on intent is live guidance
+# for that moment, not a reason to unwind this one now.
+risk_tier: T3
+iteration: 0
+review_by: "2026-10-14"
+owner:
+  accountable_human: dermdunc
+  responsible_agent: "claude (main session); intent recorded in veil-ecosystem on
+    branch agent/claude/track-h-intent-h1-h2b-h2c; implementation lands in the sibling
+    repo veilgremlin (github dermdunc/veil-proxy) on its own branch(es), created fresh
+    from veilgremlin's own main at each mission's kickoff time (main was at 06204e3,
+    merge of PR #74, when this intent was declared 2026-09-14 -- cited as
+    of-declaration context only, NOT a pin; a second veilgremlin branch,
+    agent/claude/track-h-f1-decision, already exists off that same commit for the F1
+    decision-record PR #75, unrelated to this intent's own H1/H2b/H2c implementation
+    work). H2b, H2c, and H1 may land as up to three separate veilgremlin branches/PRs
+    under this one intent (matching the plan's own §4 Start-order, which treats them
+    as independently startable), each citing this intent id in its kickoff commit
+    footer; this intent's own bindings.prs is updated as each PR opens."
+hypothesis: >
+  We believe that, as the first slice toward D-BETA-8's Codex-parity requirement
+  (ratified this session, veil-ecosystem PR #28 -- Track H's H0-H4 required before
+  beta, H5 only if H1's own verdict forces it), building three independently-startable
+  Track H milestones now -- H2b (extracting the codec trait pair so
+  FORWARDED_HEADERS/route::classify()/mask_request.rs/demask_response.rs/
+  stream_demask.rs's Anthropic-specific logic lives in a named Anthropic codec module,
+  not scattered through vg-proxy's transport code), H2c (closing the unbounded
+  request-body gap alongside the already-named unbounded response-body gap, and adding
+  the five separately-named timeouts: connect, response-headers, idle-body,
+  total-request, streaming-idle), and H1 (a live-run, throwaway-code-allowed spike
+  testing whether Codex's own documented config surface -- openai_base_url first per
+  fork F11's plan recommendation, then a custom model_providers.veil entry, across
+  both ChatGPT-sign-in and API-key auth modes -- can redirect real Codex traffic to a
+  loopback listener without building the CONNECT/process-scoped-CA transport (H5) --
+  produces real, evidence-backed progress toward Codex parity while explicitly NOT
+  attempting H0 (production launch path, hard-blocked on Track 1's A3, confirmed not
+  landed this session) or H4 (Codex live proof, which needs H0). This mission does not
+  by itself satisfy D-BETA-8 -- it is a deliberately partial slice, chosen this session
+  over "wait for A3 first" specifically because H1/H2b/H2c have no such blocker and
+  because H1's spike result (which config mechanism actually works, and against which
+  auth mode/origin) is real information the later H2a/H3/H4 milestones need before
+  their own scope can be frozen (plan §4: "H2a's type shape is frozen only after H1's
+  verdict").
+confirmation_criteria:
+  - "H1 ENTRY GATE (must be true BEFORE the first real Codex capture, not checked
+    retroactively -- CORRECTED AT CODEX CROSS-MODEL CRITIQUE, which found the
+    original wording relegated this to a closing checklist item): F15's fixture-
+    governance controls actually exist and are demonstrated working -- a scrub step
+    with its own test, a .gitignore entry, and a pre-commit check for the capture
+    directory (a deliberately-added raw-looking file is shown blocked from commit).
+    Only synthetic seeded prompts, under a disclosed-test framing matching
+    a2-live-proof.sh's own precedent, are ever sent. Retention is limited to the
+    spike -- no raw capture directory persists past this mission."
+  - "H1: a written mechanism decision is recorded in veilgremlin's OWN
+    docs/decisions.md (CORRECTED AT CODEX CROSS-MODEL CRITIQUE -- the original text's
+    'docs/decisions.md (this repo)' read as veil-ecosystem, where this intent lives,
+    but the plan's own H1 exit gate means veilgremlin's decision log, the same
+    document A2/M1-M5's own decisions are recorded in; this repo's decisions.md may
+    additionally cross-reference the beta-schedule consequence, but does not
+    substitute for veilgremlin's own record), backed by live-run evidence against the
+    real, installed codex CLI (0.153.4, confirmed on PATH) -- not a decision inferred
+    from vendor docs alone, matching the plan's own 'verified must mean verified in
+    the shipped product path' standard (§0) and its own GROUND-11 lesson. STRENGTHENED
+    AT CODEX CROSS-MODEL CRITIQUE (the original 'at minimum' language permitted
+    stopping after testing only openai_base_url, which the plan's own H1 row does not
+    allow): the decision must cover the plan's full H1 test order -- (a)
+    `openai_base_url` via a `-c` override; (b) a custom `model_providers.veil` entry;
+    both (a) and (b) tested under BOTH ChatGPT-sign-in and API-key auth modes, with
+    the real upstream origin/base path each mode actually targets recorded
+    (api.openai.com/v1/responses vs chatgpt.com/backend-api/codex); (c) whether
+    `wire_api` negotiates SSE or WebSocket, and whether
+    `codex.transport.fallback_to_http` triggers; (d) interaction with Codex's own
+    `network_proxy`/`respect_system_proxy` features; (e) ONLY if (a)-(b) both fail,
+    the `HTTPS_PROXY`+`CODEX_CA_CERTIFICATE` fallback spike with a throwaway local CA.
+    Named contingency, not silently assumed away: this session confirmed the local
+    codex CLI is signed in via ChatGPT but has no `OPENAI_API_KEY` set -- if API-key-
+    mode testing needs a real key that this mission does not already have and is not
+    authorized to obtain (matching A2's own precedent of never creating/requesting a
+    new API credential without explicit prior approval), that gap is escalated to the
+    user as an explicit, named limitation on this criterion's satisfaction, not
+    silently skipped or treated as passing anyway."
+  - "H1: a SANITISED Responses traffic corpus meeting F15's rules is actually produced
+    and exists as a real artifact (CORRECTED AT CODEX CROSS-MODEL CRITIQUE -- the
+    original criteria never required the corpus itself to exist, only implied it via
+    F15 compliance) -- not merely 'no raw capture persisted,' but a real, scrubbed,
+    retained sample of Responses-shaped traffic future H3 work can build a codec
+    against."
+  - "H1: forks F7 (which Codex auth mode ships first), F11 (openai_base_url vs custom
+    provider), and F12 (SSE-only vs WebSocket parity) are each answered with live-run
+    evidence in veilgremlin's docs/decisions.md entry, or explicitly escalated back to
+    the user as still-undecided with the blocking reason stated -- not silently left
+    open while the mission is presented as done."
+  - "H2b: Track H's OWN fork F4 (header-forwarding policy -- NOT to be confused with
+    VE-RISK-0004's registered short name 'F4' in this repo's own risk register; see
+    the GROUND comment's disambiguation, added at Codex cross-model critique after
+    finding this exact collision) is decided or explicitly escalated BEFORE H2b
+    merges, per the plan's own 'Decide before: H2b merge' row -- at minimum accepting
+    or replacing the plan's own recommendation (prefix allowlist + named singletons +
+    a credential-shaped denylist that wins over any prefix match). FORWARDED_HEADERS
+    moves under whichever policy is decided, not left as a bare fixed-enum default by
+    omission."
+  - "H2b: zero Anthropic-shaped types, constants, or logic (FORWARDED_HEADERS,
+    route::classify()'s Anthropic/Bedrock match arms, mask_request.rs's system/
+    messages/tool_use/tool_result walk shape, demask_response.rs's content[] walk,
+    stream_demask.rs's content_block_delta/text_delta handling) remain reachable
+    outside a named Anthropic codec module after this milestone -- checkable directly
+    by grep, not merely asserted. All existing tests remain green
+    (cargo test --workspace)."
+  - "H2c: a request body exceeding the new bound fails closed with a 4xx (not an OOM
+    or an unbounded read), and a response body exceeding the new bound fails closed
+    with a 5xx from vg-proxy's own perspective (not an unbounded buffer). Each of the
+    five named timeouts (connect, response-headers, idle-body, total-request,
+    streaming-idle) has its own dedicated test that trips ONLY that timeout (not a
+    shared/ambiguous 'a timeout fired somewhere' assertion). STRENGTHENED AT CODEX
+    CROSS-MODEL CRITIQUE (the original 'long-running real stream' bar was satisfiable
+    by simply re-running scripts/a2-live-proof.sh, which asks one simple question and
+    finishes in seconds, proving nothing about the new timeouts' defaults): a
+    DEDICATED test against a deliberately slow or paused real/simulated upstream
+    response, spanning a duration that meaningfully approaches or crosses the
+    shorter-named timeouts while the response is still making legitimate progress,
+    demonstrates the response is NOT killed by an over-tight default, per
+    GROUND-13/14's real vendor-documented numbers (Claude Code's own ~300s streaming
+    watchdogs; Codex's request_max_retries/stream_max_retries/stream_idle_timeout_ms
+    defaults) -- re-running a2-live-proof.sh alone does not satisfy this criterion,
+    only the regression criterion below."
+  - "scripts/a2-live-proof.sh (the existing, passing Claude Code live-run proof) still
+    passes end to end, unregressed, after H2b's codec-trait extraction and H2c's
+    bounds/timeouts land -- proving 'live-proof-preserving,' the plan's own §6
+    trade-off 3 standard for H2, not 'behaviour-identical' (H2 changes real behavior;
+    see the risk_tier comment's correction above)."
+  - "In veilgremlin (CORRECTED AT CODEX CROSS-MODEL CRITIQUE -- the original wording's
+    'this repo's actual CI gates' was ambiguous between veil-ecosystem, whose own CI
+    is Python-based, and veilgremlin, whose CI is the actually-meant target; also
+    corrected two inaccuracies against the real .github/workflows/ci.yml, re-read
+    directly): cargo build --workspace --locked, cargo clippy --workspace
+    --all-targets --locked -- -D warnings, cargo fmt --all --check (not bare
+    --check), cargo test --workspace --locked, cargo bench --workspace --locked
+    --no-run (compile-only, matching the real CI job), cargo deny check, and cargo
+    audit all pass clean after H1/H2b/H2c's changes. deny/audit are run and recorded
+    even though this intent's own GROUND judged no new Cargo dependency as expected
+    -- a defensive re-check, not assumed unnecessary from that judgment alone."
+  - "BROADENED AT CODEX CROSS-MODEL CRITIQUE (the original criterion covered only
+    Cargo.toml/Cargo.lock crates, missing that H1's throwaway relay/scrubber/
+    pre-commit tooling could plausibly need a new Python package, shell tool, or hook
+    framework instead of a Rust crate): any new dependency of ANY kind -- a Rust
+    crate, a Python package, a system tool, a pre-commit hook framework -- that lands
+    as part of this intent's scope gets an explicit, prior, human-approved choice (an
+    AskUserQuestion or equivalent BEFORE landing), not merely a post-hoc record."
+  - "H1/H2b/H2c's shipped implementation (not the intent text) gets a doubt-driven-
+    development review before merge -- single-model plus Codex cross-model, matching
+    this family's standing practice for every prior M-milestone; if Codex is
+    rate-limited or errors, a fresh-context Anthropic-model reviewer is substituted,
+    the fallback is disclosed explicitly in the mission's own record (not silently
+    skipped), and a real Codex pass is queued to run once available again."
+  - "veilgremlin's own docs/next-actions.md, docs/session-log.md, and (per its AGENTS.md
+    convention) a docs/build-log/ entry are updated to reflect each of H1/H2b/H2c's
+    real end state -- built, partially built with named remaining gaps, or blocked --
+    not left stale. This repo's own docs/beta-implementation-plan.md and veilgremlin's
+    Track H plan (§4's milestone table) are updated to match once this mission
+    closes."
+disproof_criteria:
+  - "SHARPENED AT CODEX CROSS-MODEL CRITIQUE, which judged the original wording too
+    close to a bare negation of its confirmation-criterion counterpart: H1's own
+    mission record cites vendor documentation (the config reference, environment-
+    variables doc, or this plan's own GROUND notes) as the basis for choosing between
+    openai_base_url and a custom model_providers.veil entry, or between auth modes,
+    WITHOUT a corresponding real terminal transcript or captured-traffic artifact
+    showing the installed codex CLI actually connecting to a real loopback listener
+    under that configuration -- i.e. the decision is presented as settled by reading,
+    not by running it. This is the exact 'dev proof vs shipped mechanism' gap this
+    same plan's §1.1 identified as A2's own critique finding #2, the single most
+    consequential correction in that consolidation pass, recurring in H1's own spike."
+  - "Any raw (non-scrubbed) captured Codex traffic -- containing a real bearer token,
+    a real prompt, or real account/session identifiers -- is committed to the
+    veilgremlin repository, or persists on disk past the H1 spike's own session,
+    firing regardless of whether the mechanism decision itself is otherwise sound."
+  - "After H2b is presented as complete, a grep for Anthropic-specific identifiers
+    (FORWARDED_HEADERS, content_block_delta, tool_use, system) outside the new
+    Anthropic codec module still returns a match in vg-proxy's transport/routing
+    code (server.rs, upstream.rs, route.rs at the top level) -- the milestone's own
+    'zero Anthropic-shaped types outside the codec module' bar not actually met. NAMED
+    LIMITATION per Codex cross-model critique: a bare identifier grep can false-
+    positive on unrelated prose (e.g. upstream.rs's own comment text uses the word
+    'system' outside any Anthropic-shaped code) -- this criterion requires the match
+    be in actual code reachable outside the codec module, not merely a textual hit,
+    when adjudicating whether it fired."
+  - "SHARPENED AT CODEX CROSS-MODEL CRITIQUE: specifically, the dedicated slow-stream
+    test this mission's own confirmation_criteria now require (not merely
+    a2-live-proof.sh) shows a response that IS still making legitimate progress
+    (bytes/events continuing to arrive within each timeout's own window) get
+    terminated anyway by one of the five new timeouts -- as distinct from a stalled
+    response correctly timing out, which is the new bounds working as designed. This
+    is the exact failure mode GROUND-13 names as a known correctness cliff this
+    milestone exists to bound, not reintroduce under a different name."
+  - "A real OpenAI/Codex credential (an API key, or any token/cookie backing a
+    ChatGPT-sign-in session), any real account/session identifier the record-and-relay
+    listener observes, or the raw form of any synthetic sensitive test value this
+    mission plants appears unmasked in any log, process argument, error message, or
+    committed evidence artifact this mission produces -- covering the
+    personal_data_changes trigger added at Codex cross-model critique, not only the
+    credential_or_secret_changes trigger the original wording named."
+  - "BROADENED AT CODEX CROSS-MODEL CRITIQUE to match the matching confirmation
+    criterion above: any new dependency -- a Rust crate in veilgremlin's
+    Cargo.toml/Cargo.lock, or a Python package/system tool/pre-commit hook framework
+    introduced by H1's own throwaway tooling -- lands as part of this intent's scope
+    without an explicit, prior, human-approved choice (an AskUserQuestion or
+    equivalent BEFORE landing)."
+  - "H2b merges (its own PR lands on veilgremlin's main) without Track H's own fork F4
+    (header-forwarding policy) having been decided or explicitly escalated first --
+    added at Codex cross-model critique, which found the original file had no
+    disproof criterion at all covering this real, plan-named blocking fork, and had
+    conflated Track H's F4 with VE-RISK-0004's own unrelated registered short name
+    'F4' throughout (see the GROUND comment's disambiguation)."
+  - "H1's own decision record, or the corpus it produces, ends up written into (or
+    only into) veil-ecosystem's docs/decisions.md rather than veilgremlin's -- the
+    exact repo-ambiguity Codex cross-model critique found in the original confirmation
+    criterion's 'docs/decisions.md (this repo)' wording."
+  - "This intent's own status is advanced past critiqued without an explicit
+    AskUserQuestion answered by the user in this session, with that answer's
+    substance recorded in the accepted history entry -- the same T3 named-per-intent-
+    approval rule INT-2026-09-13-001's own disproof_criteria established, reused here
+    by the same by-analogy convention its risk_tier comment applies."
+bindings:
+  mission_manifests: []
+  adrs: []
+  risks:
+    - "RISK-0005"
+  prs:
+    - "veilgremlin#74"
+    - "veilgremlin#75"
+    - "veilgremlin#76"
+    - "veilgremlin#77"
+    - "veil-ecosystem#28"
+    - "veil-ecosystem#29"
+history:
+  - status: declared
+    date: "2026-09-14"
+    by: "claude (main session, branch agent/claude/track-h-intent-h1-h2b-h2c)"
+    evidence: >
+      This file. Real grounding performed before declaring, cited in full in the
+      GROUND comment above: confirmed veilgremlin PR #74 (the Track H plan) is a real
+      ancestor of main; confirmed A3 has not landed (blocking H0/H4, correctly kept
+      out of this intent's scope) via beta-implementation-plan.md's own Progress
+      tracker; recorded five real AskUserQuestion rounds this session (milestone
+      selection, F1, F15, F1's exact widened-scope meaning, and whether to ratify
+      D-BETA-8 before scoping this intent) and acted on the last of them first --
+      D-BETA-8 committed and PR'd (veil-ecosystem#28) and the Track H plan's F1 fork
+      recorded (veilgremlin#75) — before writing this file, so this intent's own
+      hypothesis and bindings rest on ratified, evidenced state rather than an
+      in-session verbal agreement alone. In veilgremlin: confirmed FORWARDED_HEADERS,
+      route::classify()'s Anthropic/Bedrock-only shape, and collect_body's unbounded
+      read by direct grep/read, not trusted from the plan's own prose; confirmed
+      rcgen is a dev-only dependency; confirmed no new crate is expected for this
+      intent's own H1/H2b/H2c scope (a real difference from A2, stated explicitly);
+      confirmed the real codex CLI (0.153.4) is installed and on PATH, so H1 is
+      executable today. Read docs/intent-driven-development.md's T2/T3 boundary
+      section directly and disclosed, again, that its rule is still `kind: decision`-
+      only -- this is the second `kind: feature` intent applying INT-2026-09-13-001's
+      own by-analogy extension, not a now-settled precedent. Assessed governance
+      triggers and risk bindings independently against this intent's own actual
+      scope rather than copied from A2's assessment (credential_or_secret_changes and
+      financial_changes triggered via H1; dependency_changes NOT triggered, unlike
+      A2; RISK-0005 bound, RISK-0004/VE-RISK-0004/F4 explicitly considered and NOT
+      bound with a stated reason, RISK-0008 noted as informative precedent but not
+      bound since it is closed and Claude-CLI-specific). Checked the intents
+      directory for today's date before taking serial 001 (found none — this
+      branch was forked from main, which does not yet carry INT-2026-09-13-001,
+      itself read directly via git show/checkout on its own still-open branch for
+      shape precedent before returning here to write). Ran the validator clean (1
+      valid, INT-2026-09-12-001 only present) before writing this file; will re-run
+      after writing.
+  - status: critiqued
+    date: "2026-09-14"
+    by: "claude (fresh-context critique subagent, refute-first pass)"
+    evidence: >
+      Independently re-ran every load-bearing GROUND claim against live state rather
+      than trusting the comment's prose. Confirmed accurate: veilgremlin origin/main is
+      at 06204e3, a real merge of PR #74 (gh pr view: MERGED, mergeCommit 06204e3);
+      veilgremlin PR #75 (agent/claude/track-h-f1-decision, commit 891faa6) is real,
+      OPEN, and its diff against main is exactly the F1-row/§0-pointer edit the GROUND
+      describes (docs/architecture/multi-harness-proxy-plan.md only, 9 insertions);
+      veil-ecosystem PR #28 (agent/claude/beta-bar-widen-codex, commit c19a155) is
+      real, OPEN, and its diff against main is exactly the D-BETA-8 ratification in
+      docs/decisions.md plus the §1/Progress-tracker/§5 amendments to
+      beta-implementation-plan.md described in GROUND, including the correct
+      "reopens/overrides the 2026-09-13 ratification" framing. Read
+      crates/vg-proxy/src/upstream.rs, route.rs, server.rs, and Cargo.toml directly in
+      veilgremlin: FORWARDED_HEADERS (const at line 132, used at line 262),
+      route::classify() (Anthropic direct + Bedrock InvokeModel only, deny-by-default
+      fallthrough to Block), and collect_body (lines 306-320, an unwrapped
+      `.collect().await` with no length check and no timeout) all confirmed exactly as
+      GROUND states. Confirmed codex-cli 0.153.4 installed and on PATH. Read
+      docs/intent-driven-development.md's T2/T3 section directly: confirmed the rule is
+      still written strictly for `kind: decision`, the gap is genuinely still open, not
+      silently closed since INT-2026-09-13-001. Read .hekton/governance.yaml's seven
+      approval_policy categories and tried to argue the other side on each disputed
+      one: could not make `dependency_changes` bind (H1 needs no new crate, H2b/H2c
+      need no Cargo.toml change — confirmed directly, see below) or make RISK-0004/
+      VE-RISK-0004/F4 bind (this intent's scope never touches a `vg demask` call path,
+      confirmed by reading route.rs/server.rs) — the file's own assessment holds up
+      under attack. Found and fixed four real defects, all in the GROUND comment (none
+      in the operative fields): (1) the quoted Progress-tracker row text ("Track 1
+      remainder (A3-A8) and Track 2 (Phase B/C/D/E): Not started") does not exist
+      anywhere in docs/beta-implementation-plan.md — the real row (line 19) reads
+      "Tracks 1-2 (Phase A/B) and Phases C/D/E | Not started | ... no Track 1/2 work
+      has started"; corrected to quote it accurately (the underlying conclusion, A3 not
+      landed, was never wrong). (2) the claim that tokio's `time` feature was "not yet
+      confirmed enabled" was false — crates/vg-proxy/Cargo.toml:22 shows `time` already
+      enabled in the production `[dependencies]` tokio entry; corrected, which
+      strengthens rather than weakens the no-new-dependency conclusion. (3) the
+      `[dev-dependencies]` header was cited at line 55; it is actually at line 51
+      (rcgen itself at line 58 was correct); corrected. (4) the most material one:
+      GROUND claimed to have read ".hekton/risk-register.yaml in full (all eight
+      entries, including RISK-0008 closed 2026-09-14)" as if reading this branch's own
+      file — but this branch's risk-register.yaml (forked from main) holds only seven
+      entries, RISK-0001..0007; RISK-0008 exists solely on the separate, unmerged
+      branch agent/claude/track1-a2-real-tls-client (commit 806f372), a cross-branch
+      citation that should have followed the same disclosed-citation discipline already
+      applied elsewhere in this file to PR #28/#75, but wasn't; corrected to disclose
+      it as such rather than implicitly claim it's physically present here. Attacked
+      disproof_criteria for mirror-negation: all seven are genuine, falsifiable future
+      observations distinct from "criterion N wasn't met" (each names a specific
+      failure mode — vendor-docs-only decision, raw traffic committed, a residual grep
+      match, a killed live stream, an unmasked credential, an unapproved new
+      dependency, an unratified status advance); DC3 (H2b's grep-based disproof) tracks
+      its CC4 counterpart most closely but adds real specificity (named files) rather
+      than being a bare restatement — judged acceptable, not a defect. Attacked
+      risk_tier: T3 is not optional for this intent as scoped — H1 alone trips
+      credential_or_secret_changes and financial_changes, both confirmed genuinely
+      triggered by direct reading (H1's exit gate requires live-run evidence against a
+      real, billable OpenAI endpoint, and is this family's first real Codex/OpenAI
+      credential exercise) — so T2 for the bundle-as-written is not defensible; the
+      only route to T2 would be excluding H1 entirely, which the file already
+      considered and rejected per the user's own multiSelect answer. On the named
+      composition question (should H2b/H2c split into their own lower-tier intent): a
+      genuine, real tradeoff, not manufactured — Start order in the plan (§4, read
+      directly) confirms H2b/H2c have no blockers and could ship without waiting on
+      H1's live-run spike, so bundling does cost them H1's process overhead. But
+      splitting now would fork governance mid-session against what the user actually
+      selected in this session's own AskUserQuestion round, and erring toward more
+      scrutiny (T3) rather than less is the safe-direction mistake to make if any. My
+      recommendation: keep bundled as declared for this intent; treat the split
+      question as live guidance for the *next* Track H intent if H1's spike proves
+      multi-session, not a reason to unwind this one now. Checked internal consistency:
+      bindings.prs (veilgremlin#74, veilgremlin#75, veil-ecosystem#28) is complete and
+      correctly repo-qualified against what GROUND actually cites; owner.
+      responsible_agent's repo/branch claims match verified reality (github
+      dermdunc/veil-proxy, confirmed via gh); review_by (2026-10-14, one month out)
+      matches this registry's own INT-2026-09-13-001 precedent (declared 09-13,
+      review_by 10-13) exactly in spacing. Tried specifically to break the H1/H2b/H2c
+      scope boundary, the RISK-0004 non-binding, and the dependency_changes
+      non-trigger — could not; all three hold under direct-evidence attack once the
+      four GROUND citation defects above are fixed. Cross-model (Codex) escalation per
+      doubt-driven-development: codex CLI (0.153.4) is installed and its `sandbox`
+      subcommand is available, but this run has no live user in the loop to authorize a
+      cross-model spend/session explicitly — deferred to the main session, which should
+      offer it before this intent moves past critiqued, not skipped. Re-ran
+      `python3 scripts/validate_intents.py --repo-root .` after all edits: clean, this
+      intent included.
+
+      ADDENDUM 2026-09-14 (Codex cross-model pass, doubt-driven-development mechanism,
+      `codex exec --sandbox read-only --skip-git-repo-check -C
+      /Users/hekton/Development/hekton/factory-output -`, explicit per-invocation user
+      authorization this session via AskUserQuestion): returned 11 findings (8 Major,
+      3 Minor) against ARTIFACT (this file, post-single-model-critique) + CONTRACT
+      (the validator, docs/intent-driven-development.md, the Track H plan's §4/§7, and
+      re-runnable grounding commands across both repos). Codex disclosed its own
+      execution limits plainly rather than silently skipping: could not run
+      `cargo test`/`a2-live-proof.sh` (read-only sandbox, billable external request),
+      re-ran the validator with a PyYAML-capable interpreter after the system
+      `/usr/bin/python3` lacked PyYAML, and verified PR states directly via `gh` (not
+      pre-announced as unavailable, contrary to expectation). Reconciled against live
+      repo state directly, precedence order per doubt-driven-development's RECONCILE
+      step:
+
+      VALID + ACTIONABLE, fixed in this file: (1) F15 was materially understated as
+      'a governance answer, not a session of work' when the plan's own text calls its
+      controls a precondition for H1 STARTING — fixed: a new entry-gate confirmation
+      criterion requires the scrub/.gitignore/pre-commit controls demonstrated working
+      BEFORE the first real capture, not checked retroactively; also noted the local
+      codex CLI is ChatGPT-signed-in but has no OPENAI_API_KEY, a real contingency now
+      named in that criterion rather than silently assumed away. (2) H1's 'at minimum'
+      criterion permitted stopping after testing only openai_base_url, omitting the
+      plan's own required test order (custom provider, both auth modes, wire_api
+      negotiation, network_proxy interaction, the conditional CA fallback) and never
+      requiring the sanitised corpus itself to exist as an artifact — fixed: rewritten
+      to require the full test order and a new criterion requiring the corpus exists.
+      (3) the mechanism-decision criterion's 'docs/decisions.md (this repo)' read as
+      veil-ecosystem, but the plan's own H1 exit gate means veilgremlin's own decision
+      log — fixed, and a matching disproof criterion added. (4) H2b's own
+      confirmation criteria never required deciding Track H's OWN fork F4
+      (header-forwarding policy), which H2b's own plan row explicitly depends on
+      ('FORWARDED_HEADERS moves into the Anthropic codec under F4's resolved
+      policy') — fixed: new confirmation and disproof criteria added. Codex also
+      caught that this file's own GROUND/risk_tier text used 'F4' for
+      VE-RISK-0004's unrelated registered short name throughout, a genuine naming
+      collision with Track H's own F4 neither critique pass had noticed until this
+      one — fixed: GROUND comment now disambiguates 'VE-RISK-0004' from 'Track H F4'
+      explicitly, never bare 'F4' for either. (5) `personal_data_changes` was
+      assessed as not-triggered on the reasoning that F15 confines prompt CONTENT to
+      synthetic seeds — Codex correctly pointed out synthetic content doesn't make
+      surrounding account/session metadata synthetic, and ChatGPT-sign-in exposes
+      real identifiers regardless — fixed: trigger added throughout (risk_tier
+      comment, GROUND, a new disproof criterion), tier conclusion (T3) unaffected
+      since it was already triggered by two other categories. (6) H2c's
+      'long-running real stream' criterion was satisfiable by simply re-running
+      a2-live-proof.sh, a short single-turn proof that tests nothing about the new
+      timeouts' defaults — fixed: now requires a dedicated slow/paused-stream test
+      spanning a duration that meaningfully approaches the new timeouts while still
+      making progress, with a2-live-proof.sh kept as a separate, additional
+      regression-only criterion. (7) the risk_tier comment called H2b/H2c 'internal
+      refactors,' contradicting the plan's own §6 trade-off 3 ('H2 ... is explicitly
+      not a no-behavior-change refactor') — fixed: reworded to acknowledge H2c's
+      timeouts and H2b's F4 policy are real behavior changes, not risk-free
+      refactors. (8) the CI-gates criterion's 'this repo's actual CI gates' was
+      ambiguous (veil-ecosystem's own CI is Python-based) and, once resolved to mean
+      veilgremlin, was itself inaccurate against the real .github/workflows/ci.yml
+      (bare `cargo fmt --check` vs the real `cargo fmt --all --check`; missing the
+      real `cargo bench --workspace --locked --no-run` compile-only job) — fixed,
+      re-verified directly against the file rather than trusting Codex's citation.
+      (9) the new-dependency disproof/confirmation criteria covered only Cargo
+      crates, missing that H1's own throwaway scrubber/pre-commit tooling could
+      plausibly need a Python package or shell tool instead — fixed, broadened to
+      any new dependency of any kind. (10) four provenance/citation defects: the
+      'four' vs actually-five AskUserQuestion rounds miscount (fixed, trivial); 'not
+      still a draft' overclaiming what a merge proves against the plan's own
+      'proposed, not ratified' status line (fixed, reworded); the fixed '6 warnings'
+      eco_checker citation, independently found non-reproducible (re-ran it myself on
+      this branch: 0 errors/1 warning, branch/network-state-dependent — fixed to
+      state the count varies, keeping only the load-bearing 0-errors fact).
+
+      VALID TRADE-OFF, documented rather than acted on: (11, the bundling question)
+      Codex's own recommendation was to split H1 from H2b/H2c into separate,
+      differently-tiered intents, arguing 'selecting all three tasks is not the same
+      as selecting one governance/lifecycle unit' and naming a real lifecycle
+      ambiguity (three independent PRs, one intent status, no stated rule for what
+      governs `technically_confirmed`). Reconciled, not silently deferred: the
+      lifecycle ambiguity itself IS fixed in this file (a new explicit clause: this
+      intent reaches `in_progress` at the first of the three real kickoff commits and
+      `technically_confirmed` only once all three independently meet their own
+      criteria). The split itself is NOT taken — re-forking governance mid-
+      choreography against what the user explicitly selected together this session,
+      on a fresh critique's own initiative rather than the user's, substitutes this
+      process's judgment for the user's already-made one; T3 for the whole bundle is
+      also the safer-direction choice regardless. Named as live guidance for a future
+      Track H intent if H1's spike proves multi-session, per the risk_tier comment.
+
+      NOISE / RECONCILED-AS-ALREADY-CORRECT: Codex's disproof-criteria-are-mirrors
+      finding partially overlapped with the single-model pass's own DC3 note; sharpened
+      three of the four disputed disproof criteria (DC1, DC3, DC4) with more specific
+      triggering conditions distinct from bare confirmation-criterion negation, per
+      Codex's own specific textual comparisons, rather than accepting wholesale that
+      all were defective — the underlying claims (real evidence exists, criteria are
+      falsifiable) were not themselves wrong, only under-specified.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after all fixes above:
+      `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
+      (status: critiqued)`, 2 intent(s) valid.
+  - status: accepted
+    date: "2026-09-14"
+    by: "dermdunc (via AskUserQuestion, main session)"
+    evidence: >
+      Explicit per-intent AskUserQuestion, asked after both the single-model
+      fresh-context critique and the Codex cross-model critique, with both passes'
+      fixes restated in the question itself before asking: the single-model pass's
+      four citation-only fixes (none changing substantive conclusions), and the
+      Codex pass's material findings by name -- F15's controls demoted to a closing
+      checklist instead of an entry gate; H1's criteria satisfiable by testing only
+      one of five required mechanisms with no corpus-exists requirement; the
+      mechanism decision scoped to the wrong repo's decisions.md; H2b missing a
+      required decision on Track H's own fork F4 (header-forwarding policy), which
+      this file had also name-collided with an unrelated risk-register item, now
+      disambiguated; `personal_data_changes` wrongly marked not-triggered; H2c's
+      long-stream criterion satisfiable by a proof script that finishes in seconds;
+      and a real lifecycle ambiguity across the bundled H1/H2b/H2c scope, now
+      resolved with an explicit rule -- plus Codex's own recommendation to split the
+      intent by risk tier, and this file's own reasoning for keeping it bundled
+      instead. Answer: "Accept (Recommended)". Asked as its own separate question,
+      not bundled with any other sign-off, satisfying this intent's own T3
+      named-per-intent-approval disproof criterion.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after setting
+      `status: accepted`: `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok]
+      INT-2026-09-14-001 (status: accepted)`, 2 intent(s) valid.
+  - status: in_progress
+    date: "2026-09-15"
+    by: "claude (main session, branch agent/claude/h2b-codec-trait-extraction in
+      veilgremlin)"
+    evidence: >
+      Per this intent's own lifecycle clarification (risk_tier comment): advances to
+      `in_progress` at the first of H1/H2b/H2c's real kickoff commits. H2b (codec
+      trait extraction) landed first: veilgremlin commit `03f40ab`
+      (branch agent/claude/h2b-codec-trait-extraction, PR veilgremlin#76, not yet
+      merged). All of H2b's own confirmation_criteria met: `crates/vg-proxy/src/codec`
+      (Codec trait) + `crates/vg-proxy/src/codec/anthropic/` (sole implementation,
+      holding the moved route-classification match arms, mask_request.rs,
+      demask_response.rs, stream_demask.rs verbatim); grep-verified zero
+      Anthropic-shaped identifiers (FORWARDED_HEADERS, content_block_delta, tool_use,
+      literal Anthropic/Bedrock path strings) in server.rs/upstream.rs/route.rs at the
+      top level; Track H's own fork F4 (header-forwarding policy) decided directly
+      with the user before implementation (prefix allowlist + five named singletons,
+      unchanged forwarding behavior + a credential-shaped denylist that wins over any
+      prefix match) and recorded in veilgremlin's own docs/decisions.md (2026-09-15
+      entry, cross-referenced here rather than duplicated); scripts/a2-live-proof.sh
+      re-run twice (before and after the Codex critique's own fixes) and passes end to
+      end both times; cargo build/clippy/fmt/test --locked and cargo bench --workspace
+      --locked --no-run all clean (47 unit tests, up from 44).
+
+      CORRECTION, caught checking veilgremlin PR#76's real CI rather than trusting the
+      local run: cargo deny check/cargo audit were run LOCALLY against a working tree
+      that had an unrelated, uncommitted rustls 0.23.44->0.23.45 bump (fixing
+      RUSTSEC-2026-0285, a separate branch, agent/claude/fix-rustsec-2026-0285,
+      blocked on the user's own manual commit by this machine's Cargo.lock
+      git-guardrail) mixed in from earlier in the same session -- so the local "all
+      clean" claim did not reflect what PR#76 itself actually contains. PR#76's real
+      CI (fresh checkout, no working-tree carryover) correctly shows cargo-deny
+      check/cargo-audit FAILING on that same pre-existing RUSTSEC-2026-0285 finding,
+      since this PR deliberately left Cargo.lock untouched (out of H2b's own scope).
+      This is not a regression H2b introduced -- it is the same finding, tracked
+      separately, not yet mergeable due to the same git-guardrail this session cannot
+      self-bypass. H2b's own real CI is green on every gate its own diff touches
+      (fmt/clippy/build/test/bench); deny/audit will go green once
+      agent/claude/fix-rustsec-2026-0285 merges (or its Cargo.lock bump is rebased
+      into this branch) -- named here rather than left as an inaccurate "all clean"
+      claim.
+
+      Two review rounds run per this intent's own confirmation_criteria: a
+      fresh-context single-model pass (found and fixed 2 real bugs: a header
+      misclassification that would have spammed the F4 review-candidate log on every
+      request; a denylist gap missing "key"/"auth" despite the codec's own named
+      singletons being x-api-key/authorization) and a Codex cross-model pass (explicit
+      per-invocation user authorization via AskUserQuestion this session; found and
+      this session fixed 4 more: a real defense-in-depth regression in
+      upstream::forward now documented rather than reversed per D-H-1; a missing
+      observability path for denylist-denied headers, closed via the new
+      SelectedHeaders::denied_by_credential_pattern; weak count-only test assertions,
+      strengthened to identity/value; stale doc-comment paths from the file moves.
+      Two Codex findings reconciled as contract misreads, not defects, both explicitly
+      recorded in the veilgremlin decisions.md entry rather than silently dropped).
+      veilgremlin's own docs/next-actions.md and docs/build-log/ updated
+      (docs/session-log.md is a local-only, gitignored file in this repo as of an
+      earlier housekeeping commit -- not part of the tracked tree, so not part of
+      this criterion's own commit). This repo's own beta-implementation-plan.md
+      Progress tracker and veilgremlin's Track H plan §4 H2b row both updated to
+      match (veil-ecosystem commit `5826e95` on the still-open beta-bar-widen-codex
+      branch, PR veil-ecosystem#28).
+
+      H2c and H1 remain open under this same intent -- status stays `in_progress`,
+      not advanced to `technically_confirmed`, until all three independently meet
+      their own confirmation_criteria per this intent's own lifecycle rule.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this edit: `[ok]
+      INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001 (status:
+      in_progress)`, 2 intent(s) valid.
+
+      UPDATE 2026-09-15 (same session, H2c landed): built on
+      agent/claude/h2b-codec-trait-extraction (not main) since H2c's own scope
+      (upstream.rs's forward/buffer_response, server.rs's collect_body) is exactly
+      the code H2b just restructured -- stacking avoided an avoidable merge conflict
+      between two PRs the plan's own Start-order table treats as independently
+      startable but that touch the same files. Landed as veilgremlin commits
+      `d36e458`/`79a7db5` (branch agent/claude/h2c-bounds-timeouts, PR
+      veilgremlin#77, based on PR veilgremlin#76, neither yet merged). All of H2c's
+      own confirmation_criteria met: server.rs::collect_body and
+      upstream.rs::buffer_response both bounded (MAX_REQUEST_BODY_BYTES 32 MiB,
+      MAX_RESPONSE_BODY_BYTES 64 MiB) with 413/502 fail-closed behavior; five
+      separately-named timeouts (upstream.rs::Timeouts: connect, response_headers,
+      idle_body, streaming_idle at 300s matching GROUND-13/14's real vendor numbers,
+      total_request), each with its own dedicated, isolated, fast test in the new
+      crates/vg-proxy/tests/upstream_timeouts.rs (8 tests); a dedicated test proving
+      a genuine multi-gap pause under streaming_idle's own reset mechanism survives
+      (strengthened per this intent's own criterion, see below); scripts/a2-live-proof.sh
+      re-run and passing, unregressed. cargo build/clippy/fmt/test --locked (three
+      repeated full workspace runs, no flakes) and cargo bench --workspace --locked
+      --no-run all clean. Same cargo deny check/cargo audit caveat as H2b's own
+      correction above applies identically here (same uncommitted rustls fix
+      carried in the local working tree, same pre-existing, separately-tracked
+      RUSTSEC-2026-0285 finding expected in this PR's own real CI) -- not repeated
+      as a separate correction since the mechanism is now already on record.
+
+      Two review rounds, both finding and fixing real issues -- a genuinely
+      productive second round this time, unlike H2b's Codex pass which mostly
+      confirmed correctness: a fresh-context single-model pass found two bugs, both
+      in the test suite rather than production code (a near-zero connect-timeout
+      test that flaked non-deterministically under full-workspace-suite load,
+      racing a 1ns deadline against a real fast connect and landing on the wrong
+      error variant after a genuine 30-second wait; and a classic async-Rust
+      footgun where a mock server's `_stream`-named closure parameter, never
+      referenced inside its own `async move` body, dropped -- closing the
+      connection -- before the future was ever polled, defeating the
+      response-headers-timeout test). A following Codex cross-model pass (explicit
+      per-invocation authorization via AskUserQuestion this session) found and this
+      session fixed four more, one flagged Blocker by Codex's own severity
+      assessment: (1) the just-fixed slow-stream survival test's own single-pause
+      design (300ms under a 5s test budget) was itself too generous to distinguish
+      correct per-frame idle-reset from a regression to one fixed deadline computed
+      at stream-start -- rewritten to two gaps summing over the budget while
+      neither alone exceeds it, the only shape that actually falsifies the
+      regression; also explicitly disclosed for the first time that no unit test
+      can prove the real 300s *production default* itself is well-chosen against
+      real vendor behavior, only that the reset mechanism is wired correctly for
+      whatever value is configured -- that claim rests on the vendor documentation
+      and the live-run proof, not on any fast synthetic test. (2) response_headers's
+      own doc comment claimed a narrower scope ("from a fully-sent request") than
+      the code actually covers (send_request wraps request upload too, not just the
+      wait for headers) -- both the doc and the error message corrected to name the
+      real scope rather than overclaiming a narrower one. (3) the connect-timeout
+      test's own fix (192.0.2.1, RFC 5737 TEST-NET-1) was itself found non-hermetic
+      -- RFC 5737 only recommends, does not guarantee, silent packet dropping, and
+      Codex's own sandboxed execution got an immediate PermissionDenied there
+      instead of a timeout, direct proof of real environment-dependence -- replaced
+      with a fully deterministic loopback design (a real TCP accept, followed by a
+      stalled TLS handshake) that also newly covers connect's TLS-handshake half,
+      previously untested entirely. (4) SSE content-type matching
+      (`starts_with("text/event-stream")`) was neither exact nor case-insensitive
+      per RFC 9110 §8.3.1, and H2c had copied this pre-existing A2-era bug from
+      server.rs into a second, duplicate copy in upstream.rs rather than
+      centralizing it -- fixed with one shared, correct implementation
+      (upstream::is_event_stream_content_type) used by both call sites. A sixth,
+      minor finding (hostname DNS resolution via tokio's spawn_blocking cannot be
+      cancelled once started, so a stalled resolver can accumulate blocking-pool
+      work across repeated timed-out requests) was named and accepted as a
+      documented residual limitation rather than fixed, matching this family's
+      "named gap, not solved by this milestone" convention -- a fully async
+      resolver would close it, out of this milestone's own scope.
+
+      H1 remains open under this same intent -- status stays `in_progress` still,
+      not advanced to `technically_confirmed`, until it too meets its own
+      confirmation_criteria per this intent's own lifecycle rule.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this update:
+      `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
+      (status: in_progress)`, 2 intent(s) valid.
