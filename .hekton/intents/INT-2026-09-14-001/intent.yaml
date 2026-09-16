@@ -199,7 +199,7 @@ schema_version: "tektograph-1.0"
 intent_id: "INT-2026-09-14-001"
 title: "Track H, first slice: Codex interception+auth spike (H1) + codec trait extraction (H2b) + request/response bounds and timeouts (H2c) in veilgremlin's vg-proxy"
 kind: feature
-status: technically_confirmed
+status: provisionally_confirmed
 # T3 -- by-analogy extension of docs/intent-driven-development.md's kind:decision-only
 # T2/T3 rule, the SAME extension INT-2026-09-13-001 first applied and explicitly
 # disclosed as a real operating-doc gap rather than a settled precedent. Triggered
@@ -1053,3 +1053,50 @@ history:
       Ran `python3 scripts/validate_intents.py --repo-root .` after this update:
       `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
       (status: technically_confirmed)`, 2 intent(s) valid.
+
+      CORRECTION, same overall mission, found while landing this entry: the
+      `technically_confirmed` commit above (`30357a2` on this intent's own
+      tracking branch) was made locally but never pushed before the human
+      operator merged this branch's own PR (`veil-ecosystem#29`) -- that merge
+      therefore carried only the prior, `in_progress` state of this file. main
+      was missing this entire UPDATE and the `technically_confirmed` transition
+      until this correction, cherry-picked onto a fresh branch off main and
+      landed properly. Named here rather than silently re-landed as if nothing
+      had gone wrong -- a real process gap (commit without confirming push),
+      not a content defect.
+  - status: provisionally_confirmed
+    date: "2026-09-16"
+    by: "claude (main session, branch
+      agent/claude/int-2026-09-14-001-provisionally-confirmed in
+      veil-ecosystem)"
+    evidence: >
+      Per this intent's own HAND OFF convention, `provisionally_confirmed` is
+      owned by real PR merge. All six PRs this intent's scope produced have now
+      actually merged, verified via `gh pr view --json state,mergedAt,mergeCommit`
+      immediately before this entry was written, not assumed from an earlier
+      status check: `veil-ecosystem#28` (D-BETA-8, merged 2026-09-16T06:23:47Z,
+      `4bb8998`), `veil-ecosystem#29` (this intent's own declare/critique/accept,
+      merged 2026-09-16T06:24:00Z, `19c728c`), `veil-proxy#75` (F1 decision,
+      merged 2026-09-16T06:24:13Z, `9112904`), `veil-proxy#76` (H2b, merged
+      2026-09-16T06:24:26Z, `135ba1f`), `veil-proxy#77` (H2c, merged
+      2026-09-16T10:23:50Z, `bd915de` -- required a rebase and force-push after
+      its base branch was squash-merged, real conflicts resolved by hand,
+      re-verified with a clean `cargo build --workspace --locked` before
+      pushing), `veil-proxy#79` (H1, merged 2026-09-16T11:51:46Z, `250f7e0` --
+      required two successive rebases as `main` moved twice under it during the
+      same merge sequence, same real-conflict-resolution and re-build discipline
+      both times).
+
+      All six PRs' real CI was checked, not assumed: `veil-proxy#76`/`#77`/`#79`
+      each show `cargo-audit`/`cargo-deny check` FAILING on the same single,
+      pre-existing, separately-tracked `RUSTSEC-2026-0285` finding (a rustls
+      version bump blocked all session on this machine's own `Cargo.lock`
+      git-guardrail, unrelated to this intent's own scope, disclosed in each
+      PR's own decisions.md entry) -- every other check (`build`, `clippy`,
+      `fmt`, `test`, `bench`) passes on all three. This is a known, named,
+      pre-existing gap this intent's own work did not introduce and does not
+      fix, not a silent "all green" claim.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this update:
+      `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
+      (status: provisionally_confirmed)`, 2 intent(s) valid.
