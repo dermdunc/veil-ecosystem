@@ -199,7 +199,7 @@ schema_version: "tektograph-1.0"
 intent_id: "INT-2026-09-14-001"
 title: "Track H, first slice: Codex interception+auth spike (H1) + codec trait extraction (H2b) + request/response bounds and timeouts (H2c) in veilgremlin's vg-proxy"
 kind: feature
-status: in_progress
+status: provisionally_confirmed
 # T3 -- by-analogy extension of docs/intent-driven-development.md's kind:decision-only
 # T2/T3 rule, the SAME extension INT-2026-09-13-001 first applied and explicitly
 # disclosed as a real operating-doc gap rather than a settled precedent. Triggered
@@ -874,3 +874,229 @@ history:
       Ran `python3 scripts/validate_intents.py --repo-root .` after this update:
       `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
       (status: in_progress)`, 2 intent(s) valid.
+
+      UPDATE 2026-09-16 (same overall mission, new session, H1 landed with FOUR
+      NAMED, USER-ACCEPTED DEVIATIONS from this intent's own confirmation_criteria --
+      recorded here per this intent's own H1 fork-escalation clause, not only in
+      veilgremlin's decisions.md, precisely because an author's own decision record is
+      not itself independently-checkable evidence of user acceptance, a defect this
+      session's own review process found and is correcting here rather than
+      repeating): F15's entry gate was built first and demonstrated live (scrub
+      script + its own test, `.gitignore` entry, chained pre-commit hook shown
+      blocking a deliberately force-added raw-looking file) -- veilgremlin branch
+      `agent/claude/h1-codex-spike`. The live spike itself ran against the real,
+      installed `codex` CLI (0.153.4) under real ChatGPT subscription auth and found,
+      with live-run evidence: `openai_base_url` via `-c` override on the built-in
+      provider works and reproduces (real WS-upgrade-attempt-then-HTTP-fallback,
+      exact log line captured); a custom `model_providers.veil` entry with
+      `requires_openai_auth = true` also works and reproduces; the real backend
+      behind ChatGPT-authed Codex traffic is `chatgpt.com/backend-api/codex/*`, not
+      `api.openai.com` -- a client speaking OpenAI-public-API-shaped paths against a
+      relay that preserves them 1:1 never reaches a working backend, a new,
+      real requirement beyond what the existing Anthropic codec needs.
+
+      TWO REAL, SEPARATE ADVERSARIAL REVIEW ROUNDS then found serious defects in the
+      FIRST write-up of this work, not in the underlying live-run findings above,
+      which survived both rounds intact:
+
+      Round 1 (fresh-context general-purpose subagent) found: a real ChatGPT account
+      id and real session/thread/window UUIDs passing through the fixture scrubber
+      unredacted (header-name allowlist covered credential-shaped headers only, not
+      account/session-shaped ones) in a corpus about to be retained; an F7
+      auth-mode-fork "answered" verdict resting on a real but nowhere-else-recorded
+      claim of user authorization; a plain `HTTPS_PROXY` mechanism first reported as
+      "the cleanest mechanism found" that, on reproduction attempts, actually failed
+      (see Codex cross-model round below); an imprecise "404" claim conflating three
+      distinct real response shapes; a corpus with no way to attribute an entry to a
+      specific mechanism after the fact. All fixed in place (scrubber's allowlist
+      widened + regression test added; `relay.py` given a required `--label`
+      mechanism-tag field; claims corrected to match evidence precisely) BEFORE
+      anything reached a commit.
+
+      Round 2 (Codex cross-model, `codex exec --sandbox read-only`, explicit
+      per-invocation user authorization via AskUserQuestion this session) found the
+      Round-1 fixes were themselves insufficient and found new, more severe
+      problems: (a) CRITICAL -- the Round-1 regression test had accidentally
+      hardcoded the ACTUAL real captured ChatGPT account id as "example" test data,
+      about to commit a real personal identifier into source; fixed with obviously-
+      fake placeholder UUIDs (`ffffffff-0000-...`), never copied from a real
+      capture. (b) CRITICAL -- the raw capture directory itself, though
+      `.gitignore`d and never committed, still violated this intent's own literal
+      "no raw capture directory persists past this mission" criterion merely by
+      existing on disk; deleted immediately, unconditionally, no further debate
+      needed. (c) CRITICAL -- the "sanitised" corpus's request/response BODIES (not
+      headers) carried real environment data -- real repo path, username, git commit
+      hash, `prompt_cache_key`, additional session/thread/turn/window identifiers --
+      because Codex's own real request construction embeds this as ordinary
+      structured JSON that no header-allowlist or token-shaped regex can catch; this
+      is a structural scrubbing-approach limitation, not a missed pattern. (d)
+      F7's "answered" framing was independently reconfirmed as resting on
+      author-recalled, non-checkable authorization -- "an unauthorized contract
+      rewrite" in Codex's own words. (e) F12 was marked "answered" while its own
+      specific mechanism (pinning `supports_websockets=false` to force SSE-only) was
+      never tested -- only a different thing (natural WS-upgrade failure, then
+      fallback) was observed. (f) test-order item (d) (`network_proxy`/
+      `respect_system_proxy` CONFIG KEYS) was relabeled to describe a bare
+      `HTTPS_PROXY` ENVIRONMENT VARIABLE experiment instead -- a different mechanism
+      -- which itself, on three independent reproduction attempts (one watched live
+      via a real-time log monitor), failed reproducibly: `codex` issues a genuine
+      `CONNECT chatgpt.com:443` tunnel request the spike's relay cannot satisfy (no
+      `do_CONNECT` handler), and retries indefinitely with no observed fallback --
+      the honest verdict is "not performed," not "partially explored." (g) several
+      smaller precision defects (a token-count claim conflating the CLI's own
+      displayed metric with a different real field in the raw API response; an
+      internal contradiction between F11's "adopted as primary" and the same entry's
+      "does NOT decide production mechanism"; a build-log line overselling the
+      HTTPS_PROXY anomaly as "one clean success"; `relay.py`'s new `status` field
+      left unset on the exception path).
+
+      Given real account/session data had now leaked into the retained corpus TWICE
+      despite two rounds of fixes -- once structurally (headers), once directly (a
+      hardcoded real value in source) -- a further Codex consultation (same
+      cross-model mechanism, a distinct, explicit question) was run asking
+      specifically how to satisfy this intent's own corpus criterion without a third
+      real-data leak risk. Codex recommended abandoning real-capture retention
+      entirely in favor of a hand-authored, explicitly-labeled SYNTHETIC corpus
+      (fake headers/values, structurally representative of the real observed shapes
+      -- real header NAMES, real paths, real event-type names -- grounded by but not
+      derived from the real captures, which were never retained). This is itself a
+      literal deviation from this intent's own text ("a real, scrubbed, retained
+      sample of Responses-shaped traffic"), and a second fresh model (Fable,
+      `model: fable`, asked to validate the resulting implementation plan before any
+      of it was executed) independently flagged this exact tension: the corpus
+      substitution "is an intent deviation and must be escalated, not relabeled,"
+      given the criterion's text was itself STRENGTHENED at this intent's own
+      original critique specifically to require the corpus exist as a real artifact.
+
+      ACCORDINGLY, all four deviations above (F7 narrowed to ChatGPT-subscription-
+      auth-only; F12's specific pin-mechanism left untested and deferred to H3; test-
+      order item (d) not performed; the corpus replaced with a synthetic-structure
+      artifact rather than a redacted real one) were put to the human operator
+      together, in one explicit, real-time `AskUserQuestion` this session, with the
+      exact record that would be written shown before the answer. Answer: "Accept
+      all four as the scoped result." This paragraph, in this file, is that record --
+      not veilgremlin's decisions.md alone, per Fable's review finding that an
+      author's own docs are not a substitute for the intent registry the contract
+      itself lives in. H1's own confirmation_criteria are intended to be met WITHIN
+      this accepted, narrowed scope: F15's entry gate (built, demonstrated); a
+      written mechanism decision with live-run evidence covering test order (a),
+      (b), and (c), with (d) explicitly named as not performed and (e) correctly not
+      needed since (a)/(b) succeeded; a retained corpus (synthetic-structure,
+      explicitly not a redacted real capture, per the accepted deviation above);
+      F7/F11/F12 each answered or explicitly escalated per this paragraph, not
+      silently left open. This amendment was written in two passes within the same
+      session: the first recorded the real, timestamped acceptance decision itself
+      (what needed an independently-checkable record) while the veilgremlin-side
+      artifacts were still being brought into line with it; this second pass
+      confirms that work is now done -- the synthetic corpus
+      (`scripts/h1-fixtures/sanitized/h1-spike-01.jsonl`, 5 hand-authored,
+      provenance-labeled entries) exists, and `docs/decisions.md`,
+      `docs/next-actions.md`, `docs/session-log.md`, the build-log entry, and the
+      plan doc's own H1/F7/F11/F12 annotations in veilgremlin all now reflect this
+      acceptance rather than the pre-review drafts. A direct grep of every real
+      identifier this session encountered (the real account id, session/thread/
+      window ids, the real chatgpt.com build hash, the real machine username)
+      across veilgremlin's `scripts/h1-fixtures/` and every doc this update touches
+      confirmed zero matches before this paragraph was written.
+
+      With this, H1/H2b/H2c have each met their own confirmation_criteria under
+      this intent's accepted scope (H2b/H2c per the two UPDATE sections above; H1
+      per this one). Per this intent's own lifecycle rule, `technically_confirmed`
+      is the next legal status -- recorded as its own separate history entry below,
+      not buried here.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this update:
+      `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
+      (status: in_progress)`, 2 intent(s) valid.
+  - status: technically_confirmed
+    date: "2026-09-16"
+    by: "claude (main session, branch agent/claude/track-h-intent-h1-h2b-h2c in
+      veil-ecosystem)"
+    evidence: >
+      All three of this intent's scoped milestones -- H2b, H2c, H1 -- have each
+      independently met their own confirmation_criteria, per the three preceding
+      `in_progress` UPDATE sections. H1 met its criteria within four named,
+      user-accepted scope deviations rather than the original unconditional text;
+      that acceptance and its reasoning are recorded in full in this same entry's
+      final UPDATE section above, not repeated here.
+
+      Per intent-choreography's own "Two-Pass Discipline" (a critique of the
+      intent text alone is not sufficient before promoting technically_confirmed;
+      a second pass must run against the actual shipped implementation): this
+      promotion is backed by real critique of the actual diffs, not self-report.
+      H2b and H2c each had two review rounds recorded in their own UPDATE
+      sections (fresh-context single-model + Codex cross-model). H1 had three:
+      a fresh-context general-purpose subagent, a Codex cross-model pass, and --
+      because both of those found real, serious defects (most seriously, a real
+      ChatGPT account id nearly committed twice, once via an under-scoped
+      scrubber and once via a regression test that had accidentally hardcoded
+      the real value) -- a fourth pass: Fable (a third, independent model)
+      validated the resulting fix plan *before* it was implemented, and caught
+      that the corpus-format change was itself an undisclosed contract deviation
+      needing the same real escalation as H1's other scope gaps. All four
+      passes' findings were fixed or explicitly accepted, not silently dropped;
+      this session's own final action was a direct grep of every real
+      identifier encountered against the full working tree, confirming none
+      remained, rather than trusting the fixes' own self-report.
+
+      This intent's own veilgremlin-side branches remain unmerged
+      (`agent/claude/h2b-codec-trait-extraction` PR veilgremlin#76,
+      `agent/claude/h2c-bounds-timeouts` PR veilgremlin#77, and
+      `agent/claude/h1-codex-spike`, not yet opened as a PR as of this entry)
+      pending the human operator's own merge (this session is blocked from
+      `gh pr merge` by a permission classifier, a standing, known constraint,
+      not new to this entry). `technically_confirmed` reflects that the
+      technical work meets its criteria, not that it has merged --
+      `provisionally_confirmed` is owned by real PR merge, per this intent's own
+      HAND OFF convention, and is not advanced here.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this update:
+      `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
+      (status: technically_confirmed)`, 2 intent(s) valid.
+
+      CORRECTION, same overall mission, found while landing this entry: the
+      `technically_confirmed` commit above (`30357a2` on this intent's own
+      tracking branch) was made locally but never pushed before the human
+      operator merged this branch's own PR (`veil-ecosystem#29`) -- that merge
+      therefore carried only the prior, `in_progress` state of this file. main
+      was missing this entire UPDATE and the `technically_confirmed` transition
+      until this correction, cherry-picked onto a fresh branch off main and
+      landed properly. Named here rather than silently re-landed as if nothing
+      had gone wrong -- a real process gap (commit without confirming push),
+      not a content defect.
+  - status: provisionally_confirmed
+    date: "2026-09-16"
+    by: "claude (main session, branch
+      agent/claude/int-2026-09-14-001-provisionally-confirmed in
+      veil-ecosystem)"
+    evidence: >
+      Per this intent's own HAND OFF convention, `provisionally_confirmed` is
+      owned by real PR merge. All six PRs this intent's scope produced have now
+      actually merged, verified via `gh pr view --json state,mergedAt,mergeCommit`
+      immediately before this entry was written, not assumed from an earlier
+      status check: `veil-ecosystem#28` (D-BETA-8, merged 2026-09-16T06:23:47Z,
+      `4bb8998`), `veil-ecosystem#29` (this intent's own declare/critique/accept,
+      merged 2026-09-16T06:24:00Z, `19c728c`), `veil-proxy#75` (F1 decision,
+      merged 2026-09-16T06:24:13Z, `9112904`), `veil-proxy#76` (H2b, merged
+      2026-09-16T06:24:26Z, `135ba1f`), `veil-proxy#77` (H2c, merged
+      2026-09-16T10:23:50Z, `bd915de` -- required a rebase and force-push after
+      its base branch was squash-merged, real conflicts resolved by hand,
+      re-verified with a clean `cargo build --workspace --locked` before
+      pushing), `veil-proxy#79` (H1, merged 2026-09-16T11:51:46Z, `250f7e0` --
+      required two successive rebases as `main` moved twice under it during the
+      same merge sequence, same real-conflict-resolution and re-build discipline
+      both times).
+
+      All six PRs' real CI was checked, not assumed: `veil-proxy#76`/`#77`/`#79`
+      each show `cargo-audit`/`cargo-deny check` FAILING on the same single,
+      pre-existing, separately-tracked `RUSTSEC-2026-0285` finding (a rustls
+      version bump blocked all session on this machine's own `Cargo.lock`
+      git-guardrail, unrelated to this intent's own scope, disclosed in each
+      PR's own decisions.md entry) -- every other check (`build`, `clippy`,
+      `fmt`, `test`, `bench`) passes on all three. This is a known, named,
+      pre-existing gap this intent's own work did not introduce and does not
+      fix, not a silent "all green" claim.
+
+      Ran `python3 scripts/validate_intents.py --repo-root .` after this update:
+      `[ok] INT-2026-09-12-001 (status: in_progress)`, `[ok] INT-2026-09-14-001
+      (status: provisionally_confirmed)`, 2 intent(s) valid.
