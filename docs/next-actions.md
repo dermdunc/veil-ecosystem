@@ -309,6 +309,16 @@ record of a question that has actually been answered:
       entry for the full reasoning. Not yet decided by a human — this is a recommendation
       to weigh, not a ratified answer.
 
+## Session Update: 2026-09-19 — 3 real PATH violations found by adversarial review, not fixed
+
+- [ ] Triage and fix 3 PATH findings (machine/vault path references in public-facing
+      content, distinct from the HOLD-classified file removed this session):
+      `.hekton/intents/INT-2026-09-14-001/intent.yaml:606`,
+      `docs/intent-driven-development.md:23`, `docs/prfaq-beta.md:22`. These existed
+      before and after the 2026-09-19 boundary remediation — HOLD-strip doesn't touch
+      PATH findings, they need separate content-level review. Deliberately not fixed
+      here to avoid overclaiming "boundary fixed" when it wasn't.
+
 ## Session Update: 2026-09-06 — First real retire/promote review since scaffold
 
 - [ ] Sync project.yaml version and maturity fields; they are stale since scaffold despite meeting the beta bar now
