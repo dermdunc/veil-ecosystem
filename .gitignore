@@ -30,3 +30,10 @@ dist/
 build/
 *.bak.*
 .project-setup/
+
+# --- Hekton open-core boundary (retrofit) ---
+# Factory-internal artefacts. Untracked 2026-09-19. Preserved in this repo's
+# git history (last tracked at f225c79^) and in the local working tree.
+# Corrected 2026-09-19: no private-sibling repo exists for this project --
+# the original comment's claim was false, found by adversarial review.
+docs/retire-promote-review.md
