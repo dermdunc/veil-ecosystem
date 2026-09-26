@@ -691,3 +691,30 @@ deps:
     links:
       - "veil-ecosystem/docs/beta-implementation-plan.md#phase-d--enrolment-trust-anchors-renewal-lifecycle"
       - "veilgremlin/docs/architecture/interface-contracts.md"
+  - id: XREPO-020
+    title: "veil-demo's agentic-traffic demo (Phase 1b/1c) is blocked on vg-proxy handling real multi-turn, thinking-on Claude Code sessions (veil-proxy#86)"
+    repos: [veil-demo, veilgremlin]
+    status: open
+    raised_date: 2026-09-26
+    reviewed_date: 2026-09-26
+    detail: >
+      Found in veil-demo's `docs/next-actions.md` (2026-09-26, Phase 1a feasibility spike):
+      the real `claude` CLI through vg-proxy at `c98d5c8e` failed closed at the first request
+      after a thinking turn (the default Opus 5.5 cannot opt out of thinking from the CLI), and
+      streamed tool calls carried placeholders so `Edit` never matched the real file. The human
+      chose to wait for a veilgremlin fix rather than narrow the demo, and filed the five
+      findings as `dermdunc/veil-proxy#86`. veilgremlin side landed 2026-09-26 as veil-proxy
+      PR #87 (merge commit `5cfffd6`): thinking blocks forwarded via a per-session issued-block
+      record, lossless streamed tool-input demask, entropy path-mode precision fix, and the
+      spaced/hex-dump detection gap filed as veilgremlin `RISK-0015` (named, not mitigated).
+      Remaining, veil-demo side: bump its veilgremlin pin to `5cfffd6` and re-run
+      `spikes/phase-1a/` with the default model and thinking on. Close when that run completes
+      at least 5 turns with no 400 and the first `Edit` on the IBAN line succeeds; the same run
+      settles veilgremlin's one unverified design question (whether the API checks altered
+      prior-turn thinking). Scoping note for any downstream demo page: RISK-0015 means a
+      "nothing raw left the machine" claim holds only for detected token shapes.
+    links:
+      - "https://github.com/dermdunc/veil-proxy/issues/86"
+      - "https://github.com/dermdunc/veil-proxy/pull/87"
+      - "veilgremlin/docs/decisions.md (2026-09-26 veil-proxy#86 entry)"
+      - "veil-demo/docs/next-actions.md#session-update-2026-09-26--phase-1a-feasibility-spike-run"
