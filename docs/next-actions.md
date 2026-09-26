@@ -56,6 +56,10 @@ this repo's creation.
       somewhere an operator will actually see it before configuring a real deployment — right
       now it's only in `veilgremlin`'s build-log and this doc's architecture update.
 
+- [ ] **`XREPO-020`**: veil-demo bumps its veilgremlin pin to `5cfffd6` (veil-proxy PR #87)
+      and re-runs `spikes/phase-1a/` with the default model and thinking on; close `XREPO-020`
+      here once that run passes. See `docs/cross-repo-deps.md`.
+
 ## This Week
 
 - Keep [architecture.md](architecture.md#integration-status) in sync as any of the four
