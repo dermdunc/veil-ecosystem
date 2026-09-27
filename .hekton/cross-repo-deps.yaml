@@ -694,10 +694,16 @@ deps:
   - id: XREPO-020
     title: "veil-demo's agentic-traffic demo (Phase 1b/1c) is blocked on vg-proxy handling real multi-turn, thinking-on Claude Code sessions (veil-proxy#86)"
     repos: [veil-demo, veilgremlin]
-    status: open
+    status: closed
     raised_date: 2026-09-26
-    reviewed_date: 2026-09-26
+    reviewed_date: 2026-09-27
+    closed_date: 2026-09-26
     detail: >
+      Closed: the veil-demo side landed 2026-09-26. The pin was bumped to `5cfffd6`, and the
+      Phase 1a re-run on the default model with thinking on passed (8 turns, no 400, IBAN-line
+      Edit succeeded). Phases 1b/1c and 2 followed on 2026-09-27: a verified capture, a
+      published projection, and the `/agent` page, built locally but not deployed. veil-demo
+      now pins veilgremlin `b0b263b`, current `main`. Original record follows.
       Found in veil-demo's `docs/next-actions.md` (2026-09-26, Phase 1a feasibility spike):
       the real `claude` CLI through vg-proxy at `c98d5c8e` failed closed at the first request
       after a thinking turn (the default Opus 5.5 cannot opt out of thinking from the CLI), and
@@ -718,3 +724,24 @@ deps:
       - "https://github.com/dermdunc/veil-proxy/pull/87"
       - "veilgremlin/docs/decisions.md (2026-09-26 veil-proxy#86 entry)"
       - "veil-demo/docs/next-actions.md#session-update-2026-09-26--phase-1a-feasibility-spike-run"
+
+  - id: XREPO-021
+    title: "vg-core over-masks in real agent traffic: phone detector hits model-id date suffixes; email and entropy detectors double-tag one value (veil-proxy#90)"
+    repos: [veilgremlin, veil-demo]
+    status: open
+    raised_date: 2026-09-27
+    reviewed_date: 2026-09-27
+    detail: >
+      Found by veil-demo's Phase 1c canonical capture (a real Claude Code session through
+      vg-proxy). The phone detector masked the `20251001` date suffix of
+      `claude-haiku-4-5-20251001` in the CLI's system prompt, so the model saw
+      `claude-haiku-4-PHONE_001`. The email and entropy detectors both tagged the account email,
+      leaving `EMAIL_001[REDACTED:SECRET]`. These are false positives, not leaks. veil-demo's
+      published `/agent` capture discloses them. veil-demo's backlog also names a follow-up that
+      depends on this fix: a more natural agent task whose tools genuinely need the masked
+      values. Close when veil-proxy#90 is fixed and veil-demo has taken it up (pin bump; the
+      re-capture is optional).
+    links:
+      - "https://github.com/dermdunc/veil-proxy/issues/90"
+      - "veil-demo/docs/decisions.md (2026-09-27 Phase 1c canonical capture row)"
+
