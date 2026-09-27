@@ -258,12 +258,19 @@ build-time provenance/orchestration only, never a runtime dependency of the prod
 Public interactive demo — paste text, watch PII get masked and demasked in real time against
 the real `vg-core` engine (not a mock). The one component with a live, deployed URL.
 
-- **Status:** live at [veil-demo.fly.dev](https://veil-demo.fly.dev/), two machines in `lhr`,
-  scale-to-zero on idle. `/`, `/pitch`, and `/api/session` verified live. Terraform owns app
-  existence, `fly deploy` owns releases.
+- **Status (updated 2026-09-27):** **not currently live.** `veil-demo.fly.dev` does not respond,
+  and hosting is an open decision (veil-demo plan Q2). It was previously live on Fly (two
+  machines in `lhr`, scale-to-zero). Terraform owns app existence, and `fly deploy` owns
+  releases. Since then:
+  - the `/agent` page was built locally but not deployed. It replays a real Claude Code session
+    captured through vg-proxy, then hands over to a live masking box;
+  - the deploy image is proven: native arm64 locally, amd64 in CI;
+  - GitHub CI is installed (`.github/workflows/ci.yml`: fmt, clippy+test, capture-harness,
+    `/agent` checks, amd64 docker build).
 - **Relationship to veil-proxy:** pulls **six** veilgremlin crates in as pinned git dependencies
   (`vg-core`, `vg-vault`, `vg-detectors`, `vg-parsers`, `vg-policy`, `vg-audit` — not just
-  `vg-core` alone, corrected 2026-08-24). This is, as of 2026-08-24, **the only one of the five
+  `vg-core` alone, corrected 2026-08-24). **Pin current as of 2026-09-27:** `b0b263b`, veilgremlin
+  `main`. The historical note below about a stale 2026-08-02 pin no longer applies. This is, as of 2026-08-24, **the only one of the five
   designed cross-repo integrations that's actually wired and running** — but the pin is dated
   2026-08-02, about three weeks behind veilgremlin's current HEAD (2026-08-24). Concretely: the
   live demo runs a `vg-core` that predates the entire telemetry subsystem described above.
@@ -480,7 +487,7 @@ reconciled against live repo state 2026-08-24):
 A recommendation, open to redirect, carried over from the audit and consistent with the
 dependency order in `veilgremlin/docs/architecture/product-family.md` §9:
 
-1. ~~Ship veil-demo~~ — **done**, live at veil-demo.fly.dev.
+1. ~~Ship veil-demo~~ — **done** (it was live at veil-demo.fly.dev; the deployment is down as of 2026-09-27, and hosting is being re-decided, veil-demo plan Q2).
 2. ~~Freeze the receipt/telemetry contract~~ — **corrected 2026-08-24, 3rd review cycle:
    further along than "freeze," already done.** A cross-repo reconciliation between veil-proxy
    and veil-observatory was ratified 2026-08-23 (`veil-observatory/contracts/README.md`):

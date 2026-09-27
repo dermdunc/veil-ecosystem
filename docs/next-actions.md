@@ -331,3 +331,12 @@ record of a question that has actually been answered:
 
 - [ ] Hand the final plan (~/.claude/plans/xrepo-007-device-ref-implementation.md) to a fresh session to execute
 - [ ] starting with Phase 0's prerequisite decisions
+
+## Session Update: 2026-09-27 — veil-demo status sync
+
+- [x] `XREPO-020` closed (veil-demo's agentic demo unblocked; `/agent` built locally).
+- [ ] `XREPO-021` (veil-proxy#90, vg-core over-masking in agent traffic): track until fixed and
+      taken up by veil-demo.
+- [ ] veil-demo hosting (its plan Q2): `architecture.md` now says it is not live. Update it again
+      when it is redeployed.
+
