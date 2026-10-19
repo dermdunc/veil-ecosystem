@@ -603,7 +603,7 @@ history:
 
       ADDENDUM 2026-09-14 (Codex cross-model pass, doubt-driven-development mechanism,
       `codex exec --sandbox read-only --skip-git-repo-check -C
-      /Users/hekton/Development/hekton/factory-output -`, explicit per-invocation user
+      <factory-output root> -`, explicit per-invocation user
       authorization this session via AskUserQuestion): returned 11 findings (8 Major,
       3 Minor) against ARTIFACT (this file, post-single-model-critique) + CONTRACT
       (the validator, docs/intent-driven-development.md, the Track H plan's §4/§7, and

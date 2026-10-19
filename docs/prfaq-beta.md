@@ -19,7 +19,7 @@ today, live-run proven, and cross-referenced to the ADR/XREPO item that proves i
 Internal FAQ. Nothing here is aspirational marketing language describing what AI generally can
 do — if it reads that way anywhere, that's a defect in this draft, not a style choice.
 
-**Review provenance:** produced via `~/hekton/gremlins/concept-to-product/prfaq-gremlin.md`'s
+**Review provenance:** produced via the private Hekton `prfaq-gremlin`'s
 Grounding → Draft → Cite-Check → Recorder pipeline. The first drafting pass's own Cite-Check
 step ran inline in the same session that wrote the draft — a real gap against that Gremlin's
 own design, named honestly rather than smoothed over. A genuinely independent Cite-Check pass

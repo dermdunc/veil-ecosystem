@@ -315,8 +315,10 @@ record of a question that has actually been answered:
 
 ## Session Update: 2026-09-19 — 3 real PATH violations found by adversarial review, not fixed
 
-- [ ] Triage and fix 3 PATH findings (machine/vault path references in public-facing
-      content, distinct from the HOLD-classified file removed this session):
+- [x] ~~Triage and fix 3 PATH findings~~ — fixed 2026-10-18 (see `docs/decisions.md`). Git
+      history still holds the old lines; rewriting public history is a separate decision.
+      Original finding: machine/vault path references in public-facing
+      content, distinct from the HOLD-classified file removed this session:
       `.hekton/intents/INT-2026-09-14-001/intent.yaml:606`,
       `docs/intent-driven-development.md:23`, `docs/prfaq-beta.md:22`. These existed
       before and after the 2026-09-19 boundary remediation — HOLD-strip doesn't touch

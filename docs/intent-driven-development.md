@@ -20,7 +20,7 @@ it settles anything beyond this repo.
 ## Why tektograph-1.0, and why this does not settle the org-wide question
 
 The same unmerged, unadopted proposal `kriterion`'s own operating doc names
-(`~/hekton/docs/proposals/intent-schema-consolidation.md`) still reserves this exact
+(`intent-schema-consolidation.md`, in the private Hekton control plane) still reserves this exact
 schema choice for the project owner and still does not pick a winner among its four
 options. **This document does not resolve that proposal.** It records a pragmatic,
 scoped choice for Veil Ecosystem only, made with the fragmentation disclosed to the
